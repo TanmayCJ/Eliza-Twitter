@@ -5,8 +5,13 @@ const newsData = {
     lastUpdatedNews: new Date().toISOString() // Store time in ISO format
 };
 
-const hours = 1;
-const minutes = 5; 
+const imageData = {
+    isImg: false,
+    imgIds: [] // Initialize with an empty array
+};
+
+const hours = 0;
+const minutes = 20; 
 
 export const newsEvaluator: Evaluator = {
     name: "NEWS_EVALUATOR",
@@ -16,21 +21,45 @@ export const newsEvaluator: Evaluator = {
         elizaLogger.info("News evaluator called");
 
         const agentKey = `${runtime.character.name}/newsUploadData`;
-        let agentUploadData = await runtime.cacheManager.get<{ isNews: boolean, isImg: boolean, lastUpdatedNews: string }>(agentKey);
+        const agentUploadData = await runtime.cacheManager.get<{ isNews: boolean, lastUpdatedNews: string }>(agentKey);
+
+        const agentImageKey = `${runtime.character.name}/imageUploadData`;
+        const agentImageUploadData = await runtime.cacheManager.get<{ isImg: boolean, imgIds: string[] }>(agentImageKey);
+
+        
 
         if (agentUploadData === undefined) { 
             await runtime.cacheManager.set(agentKey, newsData);
+        }
+        if (agentImageUploadData === undefined) {
+            await runtime.cacheManager.set(agentImageKey, imageData);
         }
         else {
             const currentTime = new Date().toISOString();
             const lastUpdatedTime = new Date(agentUploadData.lastUpdatedNews).getTime();
             const timeDifference = new Date(currentTime).getTime() - lastUpdatedTime;
-            const timeLimit = hours* (minutes * (60 * 1000)); // 24 hours in milliseconds
+           
+            const timeLimit = (hours * 60 * 60 * 1000) + (minutes * 60 * 1000);
 
             if (timeDifference > timeLimit) {
-                agentUploadData.isNews = true;
-                agentUploadData.isImg = false;
-                await runtime.cacheManager.set(agentKey, agentUploadData);
+                const agentData = {
+                    isNews: true,
+                    lastUpdatedNews: agentUploadData.lastUpdatedNews,
+                }
+                const imageData = {
+                    isImg: false,
+                    imgIds: agentImageUploadData.imgIds // Initialize with an empty array
+                };
+                await runtime.cacheManager.set(agentImageKey, imageData);
+                await runtime.cacheManager.set(agentKey, agentData);
+                elizaLogger.info("Updating news data:");
+            }
+            else {
+                const imageData2 = {
+                    isImg: true,
+                    imgIds: agentImageUploadData.imgIds // Initialize with an empty array
+                };
+                await runtime.cacheManager.set(agentImageKey, imageData2);
             }
         }
         

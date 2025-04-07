@@ -52,6 +52,9 @@ importers:
       '@vitest/eslint-plugin':
         specifier: 1.0.1
         version: 1.0.1(@typescript-eslint/utils@8.26.1(eslint@9.21.0(jiti@1.21.7))(typescript@5.6.3))(eslint@9.21.0(jiti@1.21.7))(typescript@5.6.3)(vitest@3.0.5(@types/debug@4.1.12)(@types/node@22.13.5)(jiti@1.21.7)(terser@5.39.0)(yaml@2.7.0))
+      agentkeepalive:
+        specifier: ^4.6.0
+        version: 4.6.0
       amqplib:
         specifier: 0.10.5
         version: 0.10.5
@@ -85,6 +88,9 @@ importers:
       tinyurl:
         specifier: ^1.1.7
         version: 1.1.7
+      together-ai:
+        specifier: 0.7.0
+        version: 0.7.0(encoding@0.1.13)
       ws:
         specifier: 8.18.0
         version: 8.18.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
