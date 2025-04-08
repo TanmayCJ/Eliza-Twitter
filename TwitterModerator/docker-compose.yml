@@ -1,0 +1,26 @@
+version: '3.9'  # "version" can be removed if you get the "obsolete" warning
+
+services:
+  web:
+    build: ./web
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./web:/app
+    depends_on:
+      - popularity
+      - safety
+
+  popularity:
+    build: ./popularity_service
+    ports:
+      - "9001:9001"
+    volumes:
+      - ./popularity_service:/app
+
+  safety:
+    build: ./safety_service
+    ports:
+      - "9002:9002"
+    volumes:
+      - ./safety_service:/app
