@@ -172,3 +172,253 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# ==============================
+# OS-Specific
+# ==============================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+
+# ==============================
+# IDEs and Editors
+# ==============================
+
+# VS Code
+.vscode/
+.history/
+*.code-workspace
+
+# IntelliJ / JetBrains
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Eclipse
+.project
+.classpath
+.c9/
+.settings/
+.loadpath
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Vim
+*.swp
+*.swo
+*.swn
+
+# ==============================
+# Programming Languages & Tools
+# ==============================
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+pip-wheel-metadata/
+*.log
+env/
+venv/
+ENV/
+env.bak/
+*.ipynb_checkpoints
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+.pnpm-lock.yaml
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.log
+hs_err_pid*
+
+# C / C++
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+*.out
+*.a
+*.lib
+*.dSYM/
+*.gcno
+
+# Rust
+target/
+Cargo.lock
+
+# Go
+bin/
+vendor/
+*.exe
+*.test
+*.out
+
+# PHP
+/vendor/
+composer.lock
+
+# Ruby
+*.gem
+*.rbc
+.bundle/
+vendor/bundle/
+log/
+tmp/
+*.log
+
+# .NET / C#
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ==============================
+# Databases and Files
+# ==============================
+
+# SQLite
+*.sqlite3
+*.db
+
+# Postgres
+*.pgsql
+*.dump
+
+# MySQL
+*.sql
+*.mysql
+
+# Mongo
+*.bson
+
+# Logs
+*.log
+
+# ==============================
+# Environment and Secrets
+# ==============================
+
+.env
+.env.*
+*.env.*
+*.secret
+*.key
+*.pem
+
+# ==============================
+# Docker
+# ==============================
+
+*.pid
+docker-compose.override.yml
+docker-compose.override.yaml
+
+# ==============================
+# Miscellaneous
+# ==============================
+
+*.bak
+*.tmp
+*.swp
+*.lock
+*.orig
+*.rej
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.tgz
+*.tar
+
+# Image caches / previews
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.webp
+*.ico
+*.psd
+*.xcf
+*.ai
+
+# Binary assets
+*.exe
+*.dll
+*.deb
+*.apk
+*.bin
+
+# Coverage Reports
+coverage/
+*.lcov
+*.coverage
+
+# Test Output
+test-results/
+*.spec.js.snap
+*.pytest_cache/
+
+# ==============================
+# Others (Optional)
+# ==============================
+
+# Local config files
+*.local
+*.override
+*.sample
