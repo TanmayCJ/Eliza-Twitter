@@ -422,3 +422,5 @@ test-results/
 *.local
 *.override
 *.sample
+
+.python-version
