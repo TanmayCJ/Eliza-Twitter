@@ -1,0 +1,8 @@
+numpy
+pandas
+torch
+tqdm
+sklearn
+sentence-transformers
+datasets
+sqlite3
