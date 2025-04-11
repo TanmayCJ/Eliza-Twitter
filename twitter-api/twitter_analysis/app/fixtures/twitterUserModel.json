@@ -1,0 +1,22 @@
+[
+{
+    "model": "app.twitteruser",
+    "pk": 1,
+    "fields": {
+        "user_id": "1779632601051066369",
+        "username": "carbonsustainai",
+        "name": "CarbonSustain",
+        "description": "🌱 The Web3 Watershed 🌱 CarbonSustain transforms carbon emissions with AI insights & on-chain accounting. Track Scope 3 & turn carbon liabilities into assets!",
+        "location": "Berkeley, CA",
+        "created_at": "2024-04-14T22:07:37Z",
+        "profile_image_url": "https://pbs.twimg.com/profile_images/1779632736623570944/CMppO6wg_normal.jpg",
+        "verified": false,
+        "protected": false,
+        "followers_count": 1146,
+        "following_count": 134,
+        "tweet_count": 296,
+        "listed_count": 0,
+        "last_pagination_token": null
+    }
+}
+]
