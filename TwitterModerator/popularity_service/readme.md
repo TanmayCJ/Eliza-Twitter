@@ -1,0 +1,1 @@
+docker build -t popularity-service -f DockerFile .

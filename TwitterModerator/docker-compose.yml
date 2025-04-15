@@ -1,4 +1,4 @@
-version: '3.9'  # "version" can be removed if you get the "obsolete" warning
+# version: '3.9'  # "version" can be removed if you get the "obsolete" warning
 
 services:
   web:
