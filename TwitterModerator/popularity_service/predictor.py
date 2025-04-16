@@ -59,5 +59,6 @@ class PopularityPredictor:
 
         return {
             "predicted_score": predicted_score,
-            "explanation": "Predicted popularity score using neural net and SentenceTransformer embeddings, standardized to [0, 100]."
+            "explanation": "Predicted popularity score using neural net and SentenceTransformer embeddings, standardized to [0, 100].",
+            "cleaned_text": cleaned
         }

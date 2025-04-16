@@ -1,0 +1,7 @@
+curl -X POST http://localhost:8000/api/popularity/ \
+     -F "text=This is a sample tweet to test popularity score." \
+     -F "image=@carbon_footprint.jpeg" \
+     -H "Content-Type: multipart/form-data"
+
+curl -X POST http://localhost:8000/api/popularity/ \
+     -F "text=This is a sample tweet to test popularity score." 

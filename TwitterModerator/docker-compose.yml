@@ -10,6 +10,7 @@ services:
     depends_on:
       - popularity
       - safety
+      - caption
 
   popularity:
     build: ./popularity_service
@@ -24,3 +25,10 @@ services:
       - "9002:9002"
     volumes:
       - ./safety_service:/app
+
+  caption:
+    build: ./caption_service
+    ports:
+      - "9003:9003"
+    volumes:
+      - ./caption_service:/app
