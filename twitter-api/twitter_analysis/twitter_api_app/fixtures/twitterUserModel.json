@@ -1,6 +1,6 @@
 [
 {
-    "model": "app.twitteruser",
+    "model": "twitter_api_app.twitteruser",
     "pk": 1,
     "fields": {
         "user_id": "1779632601051066369",

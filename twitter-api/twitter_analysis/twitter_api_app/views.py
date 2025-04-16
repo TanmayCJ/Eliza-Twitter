@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from app.models import TwitterUser, Tweet
+from twitter_api_app.models import TwitterUser, Tweet
 from .utils import analyze_tweets_for_user
 
 class TwitterAnalysisView(APIView):

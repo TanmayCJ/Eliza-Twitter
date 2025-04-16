@@ -1,4 +1,4 @@
-from app.models import TwitterUser, Tweet
+from twitter_api_app.models import TwitterUser, Tweet
 
 class TweetHandler:
     def __init__(self):

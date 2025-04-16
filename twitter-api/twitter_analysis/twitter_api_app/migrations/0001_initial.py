@@ -75,7 +75,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="tweets",
-                        to="app.twitteruser",
+                        to="twitter_api_app.twitteruser",
                     ),
                 ),
             ],

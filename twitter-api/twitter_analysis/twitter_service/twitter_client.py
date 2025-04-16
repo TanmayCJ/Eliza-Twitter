@@ -1,6 +1,6 @@
 import requests
 from django.conf import settings
-from app.models import TwitterUser
+from twitter_api_app.models import TwitterUser
 
 class TwitterClient:
     """
