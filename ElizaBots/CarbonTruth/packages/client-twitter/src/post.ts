@@ -1,4 +1,5 @@
 import type { Tweet } from "agent-twitter-client";
+import * as fs from "fs";
 import {
     composeContext,
     generateText,
@@ -33,7 +34,7 @@ import type { ActionResponse } from "@elizaos/core";
 import { MediaData } from "./types.ts";
 import { TwitterPrePostHookHandler } from "./hooks.ts";
 import { TweetChecker } from "./checks.ts";
-
+import { TweetData, TweetDataSender } from "./database.ts";
 const MAX_TIMELINES_TO_FETCH = 15;
 
 
@@ -588,6 +589,9 @@ export class TwitterPostClient {
         // Log the posted tweet
         elizaLogger.log(`Tweet posted:\n ${tweet.permanentUrl}`);
 
+        // Print collected tweet information
+        this.storeTweetInfo(tweet, rawTweetContent, runtime);
+
         // Ensure the room and participant exist
         await runtime.ensureRoomExists(roomId);
         await runtime.ensureParticipantInRoom(runtime.agentId, roomId);
@@ -607,6 +611,100 @@ export class TwitterPostClient {
             createdAt: tweet.timestamp,
         });
     }
+
+    //FIXME: Add a method to handle the approval process for tweets
+    /**
+     * Collects and prints detailed tweet information including permalink, date/time, content, URLs, hashtags, and images
+     * Also stores the tweet record in the PostgreSQL database
+     * 
+     * @param tweet The Tweet object to print information for
+     * @param rawTweetContent The original raw content of the tweet
+     */
+    storeTweetInfo(tweet: Tweet, rawTweetContent: string, runtime: IAgentRuntime) {
+        const date = new Date(tweet.timestamp);
+        const formattedDate = date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        const formattedTime = date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+
+        const divider = "=".repeat(50);
+        
+        let infoOutput = `\n${divider}\n`;
+        infoOutput += `TWEET INFORMATION:\n`;
+        infoOutput += `${tweet.id}`
+        infoOutput += `${divider}\n`;
+        infoOutput += `Permalink: ${tweet.permanentUrl}\n`;
+        infoOutput += `Date: ${formattedDate}\n`;
+        infoOutput += `Time: ${formattedTime}\n`;
+        infoOutput += `Content: ${tweet.text}\n`;
+        
+            // Try to extract hashtags from text using regex
+            const hashtagRegex = /#(\w+)/g;
+            const extractedHashtags = [];
+            let match;
+            while ((match = hashtagRegex.exec(tweet.text)) !== null) {
+                extractedHashtags.push(match[1]);
+            }
+            if (extractedHashtags.length > 0) {
+                infoOutput += `Hashtags: ${extractedHashtags.join(', ')}\n`;
+            }
+        
+        // Add photos/images if present
+        const imageArray = []
+        if (tweet.photos && tweet.photos.length > 0) {
+            infoOutput += `Images: \n  ${tweet.photos.map(photo => photo.url).join('\n  ')}\n`;
+            imageArray.push(...tweet.photos.map(photo => photo.url));
+        }
+        
+        infoOutput += `${divider}\n`;
+        
+        // Log the collected information
+        elizaLogger.info(infoOutput);
+        
+        const tweetDataPG: TweetData = {
+            sender: "carbontruth",
+            tweetData: {
+                tweetID: String(tweet.id),
+                date: String(formattedDate),
+                time: String(formattedTime),
+                tweetLnk: String(tweet.permanentUrl),
+                content: String(tweet.text),
+                hashtags: extractedHashtags,
+                imageUrl: imageArray,
+            }
+        };
+        const tweetSender = new TweetDataSender();
+
+        elizaLogger.log(`Tweet Data: ${JSON.stringify(tweetDataPG)}`);
+
+        (async () => {
+            try {
+                const id = await tweetSender.sendTweetObject(tweetDataPG);
+              if (id !== null) {
+                elizaLogger.log(`Tweet inserted with DB ID: ${id}`);
+              } else {
+                elizaLogger.log('Tweet already exists or was not inserted.');
+              }
+            } catch (error) {
+                elizaLogger.error('Error inserting tweet:', String(error));
+            }
+          })();
+          
+        // Store the tweet in PostgreSQL database
+        // this.storeTweetInDatabase(tweet, formattedDate, formattedTime, runtime)
+        //     .catch(error => {
+        //         elizaLogger.error(`Failed to store tweet in database: ${error}`);
+        //     });
+    }
+
+
 
     async handleNoteTweet(
         client: ClientBase,
@@ -695,19 +793,39 @@ export class TwitterPostClient {
                 );
             }
 
-            const fixTweet = `Tweet: ${tweetTextForPosting}
-                *  Given Tweet must follow the below rules: 
-                * Rules:
-                * 1. Keep all tweet text up to and including the last hashtag.
-                * 2. Remove any text that comes after the final hashtag.
-                * 3. If a tinyurl link (e.g., https://tinyurl.com/xyz) exists, move it to the end of the tweet, after all hashtags.
-                * 4. Remove any other non-tinyurl links from the tweet.
-                * 5. Ensure hashtags appear only at the end of the tweet.
-                * 6. Trim leading/trailing whitespace and make sure there’s no text after hashtags or the link.
-                * 7. Provide spaces between every hastags.
-                * 8. If the tweet is too long, truncate it to fit within 280 characters.
-                * 9. If the tweet already follows these rules, return it as is.`;
+            const time = Date.now();
+            const currentTime = new Date(time).toLocaleString("en-US", {
+                timeZone: "IST",
+            });
+            elizaLogger.log(`Current UTC time: ${currentTime as string}`);
 
+            const fixTweet = `Time: ${currentTime as string}
+Tweet: ${tweetTextForPosting}
+
+* Reformat this tweet with the following guidelines in mind:
+* 1. ALWAYS preserve any URLs or shortened links from tinyurl.com (e.g., https://tinyurl.com/xyz) exactly as they appear.
+* 2. REMOVE any other links that are not from tinyurl.com.
+* 3. Use a variety of natural formats:
+    - Sometimes write as one flowing sentence.
+    - Other times break it into parts, like:
+        Some part of the tweet.\n
+
+        Mid part of the tweet.\n
+
+        Final thought, link, or hashtags.
+* 4. Vary the total length of tweets — not all should be long. Some should be punchy and short, others more expressive.
+* 5. Optionally start with a casual greeting about 15% of the time based on current time.
+* 6. Limit the number of hashtags to a maximum of 2.
+* 7. Prefer turning relevant keywords already present in the tweet into hashtags, rather than adding new ones.
+* 8. Place hashtags naturally — either integrated into the sentence or grouped at the end (with proper spacing).
+* 9. Ensure links are easy to find — preferably near the end, but not strictly required.
+* 10. Keep the tweet's total character count under 280.
+* 11. Preserve the original meaning and core message of the tweet.
+* 12. Make the tone feel conversational and authentic — vary sentence style and rhythm from tweet to tweet.
+`;
+
+            elizaLogger.info("Fixing Tweet:\n" + (fixTweet as string));
+            
             const fixedTweet = await generateText({
                 runtime,
                 context: fixTweet,
@@ -783,6 +901,10 @@ export class TwitterPostClient {
                 if (updatedMediaData) {
                     mediaData = updatedMediaData;
                 }
+                
+                // Ensure tweetInfo has the latest content for logging
+                tweetInfo.text = tweetTextForPosting;
+                
             } catch (hookError) {
                 // Continue with posting even if hook fails
                 elizaLogger.error("Error in pre-post hook:", hookError);
@@ -811,13 +933,16 @@ export class TwitterPostClient {
                 client,
                 twitterUsername
             );
+            
+            // Update the tweet text to match the final version that was posted
+            tweet.text = tweetTextForPosting;
 
             await this.processAndCacheTweet(
                 runtime,
                 client,
                 tweet,
                 roomId,
-                rawTweetContent
+                tweetTextForPosting // Use the modified tweet text as the raw content
             );
         } catch (error) {
             elizaLogger.error("Error sending tweet:", error);
