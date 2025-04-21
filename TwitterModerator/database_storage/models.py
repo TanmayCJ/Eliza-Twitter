@@ -46,6 +46,12 @@ class CarbonTruthTweet(db.Model, BaseTweet):
     def __repr__(self):
         return f'<CarbonTruthTweet {self.tweet_id}>'
 
+class CarbonRantTweet(db.Model, BaseTweet):
+    __tablename__ = 'carbonrant_tweets'
+    
+    def __repr__(self):
+        return f'<CarbonRantTweet {self.tweet_id}>'
+
 class DefaultTweet(db.Model, BaseTweet):
     __tablename__ = 'default_tweets'
     
@@ -53,11 +59,12 @@ class DefaultTweet(db.Model, BaseTweet):
         return f'<DefaultTweet {self.tweet_id}>'
 
 # List of valid senders
-VALID_SENDERS = ['carbontruth', 'default']
+VALID_SENDERS = ['carbontruth', 'carbonrant', 'default']
 
 # Map of sender names to their respective table models
 SENDER_TABLE_MAP = {
     'carbontruth': CarbonTruthTweet,
+    'carbonrant': CarbonRantTweet,
     'default': DefaultTweet
 }
 

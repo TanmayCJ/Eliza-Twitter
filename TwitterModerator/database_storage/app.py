@@ -31,7 +31,7 @@ def create_app():
                 logger.info(f"Existing tables: {table_names}")
                 
                 # Check if our expected tables exist
-                expected_tables = ['carbontruth_tweets', 'default_tweets']
+                expected_tables = ['carbontruth_tweets', 'carbonrant_tweets', 'default_tweets']
                 missing_tables = [table for table in expected_tables if table not in table_names]
                 
                 if missing_tables:
