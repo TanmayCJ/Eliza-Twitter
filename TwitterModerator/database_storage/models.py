@@ -59,7 +59,11 @@ class DefaultTweet(db.Model, BaseTweet):
         return f'<DefaultTweet {self.tweet_id}>'
 
 # List of valid senders
+<<<<<<< HEAD
 VALID_SENDERS = ['carbontruth', 'carbonrant', 'default']
+=======
+VALID_SENDERS = ['carbontruth', 'default', 'carbonrant']
+>>>>>>> 16c81b5124c0aebc77d0063a4d3b22d1232dea8c
 
 # Map of sender names to their respective table models
 SENDER_TABLE_MAP = {
