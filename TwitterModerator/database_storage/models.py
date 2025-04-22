@@ -58,14 +58,21 @@ class DefaultTweet(db.Model, BaseTweet):
     def __repr__(self):
         return f'<DefaultTweet {self.tweet_id}>'
 
+class CarbonSustainAITweet(db.Model, BaseTweet):
+    __tablename__ = 'carbonsustainai_tweets'
+    
+    def __repr__(self):
+        return f'<CarbonSustainAITweet {self.tweet_id}>'
+
 # List of valid senders
-VALID_SENDERS = ['carbontruth', 'carbonrant', 'default']
+VALID_SENDERS = ['carbontruth', 'carbonrant', 'default', 'carbonsustainai']
 
 # Map of sender names to their respective table models
 SENDER_TABLE_MAP = {
     'carbontruth': CarbonTruthTweet,
     'carbonrant': CarbonRantTweet,
-    'default': DefaultTweet
+    'default': DefaultTweet,
+    'carbonsustainai': CarbonSustainAITweet
 }
 
 # Function to check if sender is valid
