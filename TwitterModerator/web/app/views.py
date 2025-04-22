@@ -1,5 +1,6 @@
 # Standard Library
 import json
+import requests
 
 # Django REST Framework
 from rest_framework.views import APIView
@@ -9,6 +10,7 @@ from rest_framework.response import Response
 from .utils.caption_client import get_image_caption
 from .utils.popularity_client import get_popularity_score, get_top_hashtags
 from .utils.safety_client import get_safety_score, get_image_safety_score
+from .utils.tweet_client import get_tweets, create_tweet, get_latest_tweet, get_tweet_by_id, get_valid_senders
 
 
 class PopularityScoreView(APIView):
@@ -81,3 +83,44 @@ class SafetyScoreView(APIView):
             response_data["text_safety_score"] = {"error": "No text provided for safety check."}
 
         return Response(response_data)
+
+class TweetsView(APIView):
+    def get(self, request):
+        try:
+            result = get_tweets(request.query_params)
+            return Response(result)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+    def post(self, request):
+        try:
+            result = create_tweet(request.data)
+            return Response(result)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+class LatestTweetView(APIView):
+    def get(self, request):
+        try:
+            sender = request.query_params.get('sender')
+            result = get_latest_tweet(sender)
+            return Response(result)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+class TweetDetailView(APIView):
+    def get(self, request, tweet_id):
+        try:
+            sender = request.query_params.get('sender')
+            result = get_tweet_by_id(tweet_id, sender)
+            return Response(result)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
+class ValidSendersView(APIView):
+    def get(self, request):
+        try:
+            result = get_valid_senders()
+            return Response(result)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
