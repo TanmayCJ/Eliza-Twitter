@@ -1,6 +1,6 @@
 curl -X POST http://localhost:8000/api/safety/ \
      -F "text=This is a sample tweet to test safety score." \
-     -F "image=@mbad_stuff.jpeg" \
+     -F "image=@bad_stuff.jpeg" \
      -H "Content-Type: multipart/form-data"
 
 curl -X POST http://localhost:8000/api/safety/ \
