@@ -41,246 +41,49 @@ import { TweetData, TweetDataSender } from "./database.ts";
 const MAX_TIMELINES_TO_FETCH = 15;
 
 
-//TODO: original tweet template
-// const twitterPostTemplate = `
-// # Areas of Expertise
-// {{knowledge}}
-
-// # About {{agentName}} (@{{twitterUserName}}):
-// {{bio}}
-// {{lore}}
-// {{topics}}
-
-// {{characterPostExamples}}
-
-// {{postDirections}}
-
-// # Task: Generate a post in the voice and style and perspective of {{agentName}} @{{twitterUserName}}.
-// Write a post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Do not add commentary or acknowledge this request, just write the post.
-// Your response should be 1, 2, or 3 sentences (choose the length at random).
-// Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than {{maxTweetLength}}. No emojis. Use \\n\\n (double spaces) between statements if there are multiple statements in your response.`;
-
-//TODO: //proper working template with Hastags
-// const twitterPostTemplate = `
-// # Areas of Expertise
-// {{knowledge}}
-
-// # About {{agentName}} (@{{twitterUserName}}):
-// {{bio}}
-// {{lore}}
-// {{topics}}
-
-// {{characterPostExamples}}
-
-// {{postDirections}}
-
-// {{providers}}
-
-// # Task:
-// If a news article is provided, generate a tweet summarizing the article within {{maxTweetLength}} characters. Do not include the article link in the tweet. Instead, reply to the tweet with the article link using 'Link: '. Do not add any additional context, commentary, or unrelated content.
-
-// If no news article is provided, generate a post in the voice, style, and perspective of {{agentName}} (@{{twitterUserName}}).
-// Write a post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Do not add commentary or acknowledge this request, just write the post.
-
-// # Hashtags
-// Include 2-4 relevant hashtags based on the topic, ensuring they fit within the total character limit of {{maxTweetLength}}. Place the hashtags at the end of the response.
-
-// Your response should be 1, 2, or 3 sentences (choose at random).
-// The total character count, including hashtags, MUST be less than {{maxTweetLength}} characters. No emojis. Use \n\n (double spaces) between statements if there are multiple statements in your response.
-
-// # Interactivity
-// Randomly decide whether the post is a statement or if it asks a question or invites opinions from users. If it's a question or opinion request, ensure it aligns with {{agentName}}'s voice and perspective.
-// `;
-
-const maxTweetLength = 160; // Default max tweet length
-
-//TODO: Proper Working Template with hastags 2.0 FIXME:
-// const twitterPostTemplate = `
-// # Areas of Expertise
-// {{knowledge}}
-
-// # About {{agentName}} (@{{twitterUserName}}):
-// {{bio}}
-// {{lore}}
-// {{topics}}
-
-// {{characterPostExamples}}
-
-// {{postDirections}}
-
-// {{providers}}
-
-// # Task:
-// If a **news article** is provided, generate a **tweet summarizing the article** within ${maxTweetLength} characters.  
-// - **Ensure the total character count includes hashtags and the article link.**  
-// - **The article link must be at the end of the response, after the hashtags.**  
-// - **Do not add any additional context, commentary, or unrelated content.**  
-
-// If no news article is provided, generate a post in the **voice, style, and perspective** of {{agentName}} (@{{twitterUserName}}).  
-// - Write a post that is **{{adjective}} about {{topic}}** (without mentioning {{topic}} directly), from the perspective of {{agentName}}.  
-// - **Do not acknowledge this request or include a news link.**  
-// - **Hashtags must still appear at the end of the response.**  
-
-// # Hashtags  
-// Include **2-3 relevant hashtags** ensuring the total character count **(including hashtags and the link)** does not exceed ${maxTweetLength} characters.  
-
-// # Formatting Rules  
-// ✅ **For news tweets:**
-// [Summary of the article] #Hashtag1 #Hashtag2 #Hashtag3 **(ensure a space here)** [URL]
-
-// ✅ **For non-news tweets:**
-// [Post content in {{agentName}}'s voice. Tweet followed by hashtags] #Hashtag1 #Hashtag2 #Hashtag3
-
-
-// ✅ **STRICT RULES:**  
-// - **The total tweet, including hashtags and link, MUST be within ${maxTweetLength} characters.**  
-// - **The article link MUST be at the end of the response, after the hashtags.**  
-// - **Hashtags MUST be at the end, before the link.**  
-// - **No emojis.**  
-// - **Use "\\n\\n" (double spaces) between sentences if multiple sentences are used.**  
-// - **Response should be 1, 2, or 3 sentences (choose randomly).**  
-
-// # Example Output  
-// ### **For a news tweet:**  
-// New research shows ocean temperatures are rising faster than expected. The consequences for marine life and coastal communities could be devastating. #ClimateCrisis #SaveOurOceans #ActNow  https://tinyurl.com/ycypjjxx
-
-// ### **For a non-news tweet:**
-// Clean energy isn’t just about the future—it’s about survival. Every choice we make today determines the world we leave behind. #RenewableEnergy #Sustainability #Future
-
-// # Interactivity  
-// Randomly decide whether the post is a **statement**, a **question**, or an **opinion request**.  
-// If it’s a question or opinion request, ensure it aligns with **{{agentName}}'s** voice and perspective.  
-// `;
-
+// Twitter post template used for generating tweets
 const twitterPostTemplate = `
-# Areas of Expertise
+# Your Role: CarbonRant - The Unapologetic Climate Truth-Teller
+
+# Knowledge Base
 {{knowledge}}
 
-# About {{agentName}} (@{{twitterUserName}}):
-{{bio}}
-{{lore}}
-{{topics}}
+# Character Profile
+Bio: {{bio}}
+Personality: {{lore}}
 
-{{characterPostExamples}}
+# Core Topics & Style
+Topics: {{topics}}
+Tone: Provocative, bold, and unfiltered—deliver climate truth with righteous fury.
 
-{{postDirections}}
+Style Guidelines:
+- Start with a punch—hit hard with facts or callouts
+- Use sharp, sarcastic tone that exposes climate hypocrisy
+- Call out corporate BS and greenwashing directly
+- Drop climate facts like they're battle raps
+- End with either a savage callout or a fierce call to action
+- Keep it under 280 chars, but make every character count
+- Add 1-2 strategic hashtags (not just decorative)
+- Focus on: climate crisis, corporate accountability, system change
+- Skip: pleasantries, both-sidesism, gentle suggestions
 
-{{providers}}
+# Sample Posts
+{{postExamples}}
 
-# Task:
-If a **news article** is provided, generate a **tweet summarizing the article** within ${maxTweetLength} characters.  
-- **The total character count MUST include hashtags and the article link.**  
-- **The article link MUST appear AFTER the hashtags and be the FINAL part of the tweet.**  
-- **DO NOT add any extra text, emojis, symbols, or commentary after the link.**  
-
-If no news article is provided, generate a tweet based on the agent's **knowledge** about **{{topic}}**, using the voice and perspective of {{agentName}} (@{{twitterUserName}}).  
-- **The post must be informative, engaging, or thought-provoking.**  
-- **DO NOT acknowledge this instruction in the tweet.**  
-- **Hashtags MUST be at the end, and after them, ABSOLUTELY NOTHING.**  
-
-# Hashtag Rules  
-- Include **2 to 3** relevant hashtags.  
-- **DO NOT** place hashtags anywhere but the very end.  
-- The **article link must follow the hashtags**, if a news article is provided.  
-- **No content of any kind may follow the hashtags or the link.**
-
-# Formatting Rules  
-✅ **For news tweets:**  
-[Summary of the article] #hashtag1 #hashtag2 #hashtag3 [link]  
-
-✅ **For non-news tweets:**  
-[Content based on topic knowledge] #hashtag1 #hashtag2 #hashtag3  
-
-✅ **ABSOLUTE RULES:**  
-- Tweet MUST NOT exceed ${maxTweetLength} characters including hashtags and link.  
-- Article link MUST always be at the very end, AFTER hashtags.  
-- Hashtags MUST be the final words if there's no link.  
-- NO emojis.  
-- Use "\\n\\n" (double space) between sentences if there are multiple sentences.  
-- Tweet must contain 1 to 3 sentences (choose randomly).  
-- DO NOT include the link if there is no article.  
-- **AFTER THE LAST HASHTAG OR LINK, ABSOLUTELY NOTHING MUST FOLLOW.**  
-
-# Example Output  
-### **News Tweet:**  
-New research shows ocean temperatures are rising faster than expected. The consequences for marine life and coastal communities could be devastating. #ClimateCrisis #SaveOurOceans https://example.com/
-### **Non-news Tweet:**  
-The shift to renewable energy isn't just about cutting emissions—it's about securing a sustainable future. Every step towards clean energy reduces long-term environmental harm. #RenewableEnergy #GreenFuture  
-
-# Interactivity  
-Randomly (but not often), choose whether the post is a **statement**, a **question**, or an **opinion request**, staying aligned with the tone and personality of {{agentName}}.
+# Task: Generate a {{adjective}} tweet about {{topic}} that embodies CarbonRant's rage and purpose.
+Rules:
+- Must be under 280 characters
+- Include 1-2 relevant hashtags (not at end)
+- No emojis or questions
+- Raw truth, real urgency
+- Stats and specifics preferred
+- Call out hypocrisy where relevant
 `;
 
 
 
-  //TODO: //proper working template for news but without thoughts on news
-//   const twitterPostTemplate = `
-//   # Areas of Expertise
-//   {{knowledge}}
-  
-//   # About {{agentName}} (@{{twitterUserName}}):
-//   {{bio}}
-//   {{lore}}
-//   {{topics}}
-  
-//   # News: {{providers}}
 
-//   # Task: Generate a tweet in the voice and style of {{agentName}} (@{{twitterUserName}}), incorporating the provided news.
-  
-//     A new article **{{providers}}** highlights an important topic. **PRIORITY: Generate a tweet that directly incorporates and comments on this news.** Ensure the post reflects {{agentName}}'s perspective while remaining relevant to the news. Do not explicitly mention {{topic}} unless it is crucial for understanding the news.
-  
-//   Your response should be 1, 2, or 3 sentences (choose the length at random).
-//   Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than {{maxTweetLength}} characters. Use \\n\\n (double spaces) between statements if there are multiple statements in your response.
-   
-//   Post Examples = {{characterPostExamples}}
-  
-//   {{postDirections}}
-  
-//   # Task: Generate a tweet in the voice and style of {{agentName}} (@{{twitterUserName}}), incorporating the provided news.
-  
-//   Write a tweet that is {{adjective}} about the news, from the perspective of {{agentName}}. Do not add commentary or acknowledge this request, just write the post keeping in reference the news provided. Also share your views on the news in **one sentence**.
-  
-//   Your response should be 1, 2, or 3 sentences (choose the length at random).
-//   Never start the tweet with "As a 'something'", etc.
-//   Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than {{maxTweetLength}}. Use \\n\\n (double spaces) between statements if there are multiple statements in your response. Don't place the tweet within quotes.
-  
-//   # If no news is provided:
-//   If there is no news provided, generate a tweet based on {{knowledge}}, {{topics}}, and previous tweets (Post Examples). Previous tweets are attached as a reference to understand the way {{agentName}} tweets. The tweet should still align with the views of {{agentName}} and be concise, clear, and engaging. Follow the same rules for length and format. News is the first priority; if news exists, prioritize it over all other factors. Do not start the tweet with quotes.
-//   `;
-
-// const twitterPostTemplate = `# Areas of Expertise
-// {{knowledge}}
-
-// # About {{agentName}} (@{{twitterUserName}}):
-// {{bio}}
-// {{lore}}
-// {{topics}}
-
-// # News: {{providers}}
-
-// # Task: Generate a tweet in the voice and style of {{agentName}} (@{{twitterUserName}}), incorporating the provided news.
-
-// A new article from **{{providers}}** highlights an important topic. **PRIORITY: Generate a tweet that directly incorporates and comments on this news.** Ensure the post reflects {{agentName}}'s perspective while remaining relevant to the news. Do not explicitly mention {{topic}} unless it is crucial for understanding the news.
-
-// Your response should be 1, 2, or 3 sentences (choose the length at random).
-// Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than 400 characters. Use \n\n (double spaces) between statements if there are multiple statements in your response.
- 
-// Post Examples = {{characterPostExamples}}
-
-// {{postDirections}}
-
-// # Task: Generate a tweet in the voice and style of {{agentName}} (@{{twitterUserName}}), incorporating the provided news.
-
-// Write a tweet that is {{adjective}} about the news, from the perspective of {{agentName}}. Do not add commentary or acknowledge this request, just write the post keeping in reference to the news provided. Also share your views on the news in **one sentence**.
-
-// Your response should be 1, 2, or 3 sentences (choose the length at random).
-// Never start the tweet with "As a 'something'", etc.
-// Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than 400. Use \n\n (double spaces) between statements if there are multiple statements in your response. Don't place the tweet within quotes.
-
-// **If the news provided includes a link, append the link to the end of the tweet in the format: \n\nlink: https://example.com/news**
-
-// # If no news is provided:
-// If there is no news provided, generate a tweet based on {{knowledge}}, {{topics}}, and previous tweets (Post Examples). Previous tweets are attached as a reference to understand the way {{agentName}} tweets. The tweet should still align with the views of {{agentName}} and be concise, clear, and engaging. Follow the same rules for length and format. News is the first priority; if news exists, prioritize it over all other factors. Do not start the tweet with quotes.`;
+const maxTweetLength = 280; // Updated to Twitter's current max length
 
 
 export const twitterActionTemplate =
@@ -671,6 +474,8 @@ export class TwitterPostClient {
         // Log the collected information
         elizaLogger.info(infoOutput);
         
+
+
         const tweetDataPG: TweetData = {
             sender: "carbonrant",
             tweetData: {
@@ -684,7 +489,8 @@ export class TwitterPostClient {
             }
         };
         const tweetSender = new TweetDataSender();
-
+        const truthtweet= tweetSender.getLatestTweet('carbontruth');
+        // elizaLogger.log(`Tweet Data: ${JSON.stringify(truthtweet)}`); 
         elizaLogger.log(`Tweet Data: ${JSON.stringify(tweetDataPG)}`);
 
         (async () => {
@@ -781,9 +587,20 @@ export class TwitterPostClient {
         twitterUsername: string,
         mediaData?: MediaData[]
     ) {
-        
         try {
-            // elizaLogger.log(`Posting new tweet:\n`);
+            elizaLogger.log(`Posting new tweet:\n`);
+
+            // Check if tweet already has a greeting
+            const greetingRegex = /^(good\s*(morning|afternoon|evening|night)|hey|hi|hello|morning|evening|afternoon)/i;
+            const hasGreeting = greetingRegex.test(tweetTextForPosting);
+
+            // If no greeting exists, maybe add a sassy one
+            if (!hasGreeting) {
+                const sassyGreeting = this.getTimeBasedSassyGreeting();
+                if (sassyGreeting) {
+                    tweetTextForPosting = sassyGreeting + tweetTextForPosting;
+                }
+            }
 
             const containsLink = await TwitterPrePostHookHandler.tweetContainsUrl(
                 tweetTextForPosting
@@ -798,7 +615,7 @@ export class TwitterPostClient {
 
             const time = Date.now();
             const currentTime = new Date(time).toLocaleString("en-US", {
-                timeZone: "IST",
+                timeZone: "PST",
             });
             elizaLogger.log(`Current UTC time: ${currentTime as string}`);
 
@@ -1967,5 +1784,95 @@ Tweet: ${tweetTextForPosting}
                 }
             }
         }
+    }
+
+    /**
+     * Generates a sassy greeting based on PST time
+     * @returns A time-appropriate sassy greeting or empty string
+     */
+    private getTimeBasedSassyGreeting(): string {
+        // Convert current time to PST
+        const pstTime = new Date().toLocaleString("en-US", {
+            timeZone: "America/Los_Angeles",
+        });
+        const hour = new Date(pstTime).getHours();
+
+        // Define time-based sassy greetings with expanded options
+        const greetings = {
+            earlyMorning: [
+                "Oh look who's up early destroying the planet",
+                "Good morning to everyone except fossil fuel lobbyists",
+                "Rise and shine, carbon criminals",
+                "Another dawn, another day of environmental chaos",
+                "Early bird catches the oil spill",
+                "Dawn patrol checking in on our dying planet",
+                "Up with the sun, watching corporations run",
+                "First light reveals more environmental blight",
+                "Wakey wakey, Earth's getting shakey"
+            ],
+            morning: [
+                "Morning sunshine, ready to face the climate crisis?",
+                "Good morning to the planet saviors only",
+                "Coffee's brewing, emissions are too",
+                "Hope your morning commute is eco-friendly",
+                "Morning! Let's talk about your carbon footprint",
+                "Starting the day with a fresh dose of eco-anxiety",
+                "Morning meeting with mother Earth's lawyers",
+                "Breakfast with a side of environmental collapse",
+                "Top of the morning to no one because the ozone's thinning"
+            ],
+            afternoon: [
+                "Afternoon tea with a side of harsh climate reality",
+                "Hey besties ruining the atmosphere",
+                "Lunch break from destroying ecosystems?",
+                "Mid-day check: how's that carbon footprint looking?",
+                "Afternoon delight (for corporate polluters)",
+                "Taking a siesta while the planet doesn't",
+                "Sunny afternoon, shame about the smog",
+                "Perfect weather for some climate action",
+                "Lunch hour PSA: Your burger's carbon footprint is showing"
+            ],
+            evening: [
+                "Evening folks, time for your daily dose of eco-guilt",
+                "Night's falling, so is our environmental future",
+                "Good evening to sustainable practices only",
+                "Evening update: Earth still needs saving",
+                "Evening news: Still no good news for the planet",
+                "Twilight hour environmental power check",
+                "Setting sun, rising temperatures",
+                "Evening reminder that corporations are killing us",
+                "Evening vibes interrupted by rising sea levels"
+            ],
+            lateNight: [
+                "Late night climate anxiety, anyone?",
+                "Can't sleep? Neither can the dying coral reefs",
+                "Midnight musings about environmental collapse",
+                "Night owls burning less carbon than the corporations",
+                "Counting endangered species instead of sheep",
+                "3AM thoughts about ocean acidification",
+                "Nighttime is the right time for eco-activism",
+                "While you sleep, the planet weeps",
+                "Midnight meditation on mass extinction"
+            ]
+        };
+
+        // Select greeting based on time
+        let timeBasedGreetings;
+        if (hour >= 4 && hour < 7) {
+            timeBasedGreetings = greetings.earlyMorning;
+        } else if (hour >= 7 && hour < 12) {
+            timeBasedGreetings = greetings.morning;
+        } else if (hour >= 12 && hour < 17) {
+            timeBasedGreetings = greetings.afternoon;
+        } else if (hour >= 17 && hour < 22) {
+            timeBasedGreetings = greetings.evening;
+        } else {
+            timeBasedGreetings = greetings.lateNight;
+        }
+
+        
+        return Math.random() < 0.4 
+            ? timeBasedGreetings[Math.floor(Math.random() * timeBasedGreetings.length)] + "\n\n"
+            : "";
     }
 }

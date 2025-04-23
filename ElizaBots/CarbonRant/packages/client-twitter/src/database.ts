@@ -1,3 +1,5 @@
+import { elizaLogger } from "@elizaos/core";
+
 /**
  * Tweet data nested interface matching the expected structure
  */
@@ -148,7 +150,7 @@ export class TweetDataSender {
                 const errorResponse = data as ApiResponse;
                 throw new Error(`API error: ${errorResponse.error || response.statusText}`);
             }
-            
+            elizaLogger.log('Fetched tweets:', JSON.stringify(data));
             return data as TweetDataContent[];
         } catch (error) {
             console.error('Error getting tweets:', error);
@@ -162,16 +164,16 @@ export class TweetDataSender {
      * @param sender - The sender identifier
      * @returns Promise that resolves with the tweet data
      */
-    async getTweetById(tweetID: string, sender: 'carbontruth' | 'default' = 'carbontruth'): Promise<TweetDataContent> {
+    async getLatestTweet(sender: 'carbontruth' | 'default' = 'carbontruth'): Promise<TweetDataContent> {
         try {
-            const response = await fetch(`${this.apiUrl}/${tweetID}?sender=${sender}`);
+            const response = await fetch(`${this.apiUrl}/latest?sender=${sender}`);
             const data = await response.json();
             
             if (!response.ok) {
                 const errorResponse = data as ApiResponse;
                 throw new Error(`API error: ${errorResponse.error || response.statusText}`);
             }
-            
+            elizaLogger.log('Fetched tweets:', JSON.stringify(data));
             return data as TweetDataContent;
         } catch (error) {
             console.error('Error getting tweet by ID:', error);
