@@ -1,0 +1,7 @@
+curl -X POST http://127.0.0.1:8000/api/compare_hashtags/ \
+     -H "Content-Type: application/json" \
+     -d '{
+           "text": "Shorelines in crisis: Rising seas & intense storms are reshaping our coastlines. What'\''s your solution to preserve these vital ecosystems? Join the conversation! https://tinyurl.com/swdxepa7",
+           "hashtags": ["#CoastalConservation", "#Sustainability", "#OceanAction"],
+           "top_n": 1
+         }'
