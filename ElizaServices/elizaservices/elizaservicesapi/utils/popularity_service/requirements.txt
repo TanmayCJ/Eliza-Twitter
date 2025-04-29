@@ -1,0 +1,4 @@
+torch>=1.10.0
+sentence-transformers==2.2.2
+transformers==4.22.1
+huggingface-hub==0.10.1
