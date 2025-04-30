@@ -1,14 +1,14 @@
 import re
 from django.conf import settings
-from api.services.url_processor import URLProcessor
-from api.services.external_api import ExternalAPIClient
-from api.services.retry_logic import build_retry_prompt
-from api.services.openai_inference import TweetLLM
+from combine_tweet.services.url_processor import URLProcessor
+from combine_tweet.services.external_api import ExternalAPIClient
+from combine_tweet.services.retry_logic import build_retry_prompt
+from combine_tweet.services.openai_inference import TweetLLM
 import json
 import os
+import logging
 
-# Load character
-with open(os.path.join(settings.BASE_DIR, 'api', 'character.json')) as f:
+with open(os.path.join(settings.BASE_DIR, 'combine_tweet', 'character3.json')) as f:
     CHARACTER = json.load(f)
 
 class TweetGenerator:
@@ -23,8 +23,8 @@ class TweetGenerator:
         self.api_client = ExternalAPIClient()
 
         # Blend ratios
-        self.fact_weight = 0.7  # default 70% facts
-        self.rant_weight = 0.3  # default 30% rant
+        self.fact_weight = 0.9  # default 70% facts
+        self.rant_weight = 0.1  # default 30% rant
 
     def set_blend_ratio(self, fact_weight, rant_weight):
         if not abs((fact_weight + rant_weight) - 1.0) < 0.01:
@@ -44,22 +44,11 @@ class TweetGenerator:
 
         return f"""
 You are {CHARACTER['persona_name']} — {CHARACTER['persona_description']}.
-
 Use a {primary_tone} tone for the facts.
 Use a {secondary_tone} tone for the emotional parts.
-
 Merge the following contents respecting the blend:
-
 - FACTUAL (about {self.fact_weight * 100:.0f}%): {fact_part}
 - EMOTIONAL (about {self.rant_weight * 100:.0f}%): {rant_part}
-
-Rules:
-- Keep the tweet coherent and impactful.
-- Do not invent statistics or fake urgency.
-- No URLs (they will be appended separately).
-- Add max 2 relevant hashtags at the end.
-- Maintain a professional, data-driven voice while integrating emotional drive where appropriate.
-
 Now write the tweet:
 """
 
@@ -68,21 +57,48 @@ Now write the tweet:
         rant_text, rant_urls = self.url_processor.extract_urls(rant_content)
         all_urls = carbon_urls + rant_urls
 
-        prompt = self.generate_prompt(carbon_text, rant_text)
-        combined = self.llm.generate(prompt)
-        combined = self._fix_truncation(combined)
+        # Check if tweets are related
+        are_related = self.llm.check_tweet_relatedness(carbon_text, rant_text)
+        
+        # If tweets are not related, use only the carbon tweet
+        print("are_related",are_related)
+        if not are_related:
+            primary_tone = ', '.join(CHARACTER['tone']['primary'])
+            secondary_tone = ', '.join(CHARACTER['tone']['secondary'])
+            
+            prompt = f"""
+            You are {CHARACTER['persona_name']} — {CHARACTER['persona_description']}.
+            Use a {primary_tone} tone for about 70% of the content.
+            Use a {secondary_tone} tone for about 30% of the content.
+            
+            Create a tweet based solely on this content:
+            {carbon_text}
+            
+            Maintain the factual accuracy and make it coherentwhile making it engaging.
+            """
+        else:
+            # If related, use the normal blending approach
+            prompt = self.generate_prompt(carbon_text, rant_text)
+        
+        try:
+            combined = self.llm.generate(prompt)
+            combined = self._fix_truncation(combined)
 
-        text, new_urls = self.url_processor.extract_urls(combined)
-        all_urls = list(set(all_urls + new_urls))
-        text = self.url_processor.append_urls_to_text(text, all_urls, self.char_limit)
+            text, new_urls = self.url_processor.extract_urls(combined)
+            all_urls = list(set(all_urls + new_urls))
+            text = self.url_processor.append_urls_to_text(text, all_urls, self.char_limit)
 
-        if not text or len(text) < 20:
-            text = "Our fight for renewable energy is also a fight for ecosystems. Every sustainable choice helps protect our planet. #ClimateAction #RenewableEnergy"
-            if all_urls:
-                text = self.url_processor.append_urls_to_text(text, all_urls, self.char_limit)
+            if not text or len(text) < 20:
+                text = "Our fight for renewable energy is also a fight for ecosystems. Every sustainable choice helps protect our planet. #ClimateAction #RenewableEnergy"
+                if all_urls:
+                    text = self.url_processor.append_urls_to_text(text, all_urls, self.char_limit)
 
-        validated = self.validate_and_improve_tweet(text, all_urls)
-        return validated if validated is not None else text
+            #validated = self.validate_and_improve_tweet(text, all_urls)
+            validated = None
+            return validated if validated is not None else text
+        except Exception as e:
+            logging.error("Error generating combined tweet: %s", str(e))
+            return "An error occurred while generating the tweet. Please try again."
 
     def validate_and_improve_tweet(self, tweet_text, urls=None):
         urls = urls or []

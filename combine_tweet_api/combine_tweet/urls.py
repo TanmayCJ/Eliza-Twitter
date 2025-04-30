@@ -1,5 +1,5 @@
 from django.urls import path
-from api import views
+from combine_tweet import views
 
 urlpatterns = [
     path('', views.home, name='home'),

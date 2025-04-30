@@ -1,4 +1,4 @@
-from api.models import CarbonTruthTweet, CarbonRantTweet
+from combine_tweet.models import CarbonTruthTweet, CarbonRantTweet
 
 class DatabaseManager:
     """Use Django ORM for database operations"""

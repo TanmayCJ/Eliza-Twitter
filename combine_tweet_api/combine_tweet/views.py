@@ -1,7 +1,9 @@
+
+# Create your views here.
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from api.services.db_manager import DatabaseManager
-from api.services.tweet_generator import TweetGenerator
+from combine_tweet.services.db_manager import DatabaseManager
+from combine_tweet.services.tweet_generator import TweetGenerator
 
 generator = TweetGenerator()
 
