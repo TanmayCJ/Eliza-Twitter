@@ -1,0 +1,16 @@
+from combine_tweet.models import CarbonTruthTweet, CarbonRantTweet
+
+class DatabaseManager:
+    """Using Django ORM for database operations"""
+    @staticmethod
+    def get_latest_entries():
+        carbon = CarbonTruthTweet.objects.values('content').first()
+        rant = CarbonRantTweet.objects.values('content').first()
+        return {
+            'carbon_tweet': {
+                'content': carbon['content'] if carbon else None
+            },
+            'rant_tweet': {
+                'content': rant['content'] if rant else None
+            }
+        }

@@ -11,6 +11,7 @@ services:
       - popularity
       - safety
       - caption
+      - database_storage
 
   popularity:
     build: ./popularity_service
@@ -32,3 +33,10 @@ services:
       - "9003:9003"
     volumes:
       - ./caption_service:/app
+      
+  database_storage:
+    build: ./database_storage
+    ports:
+      - "9004:9004"
+    volumes:
+      - ./database_storage:/app

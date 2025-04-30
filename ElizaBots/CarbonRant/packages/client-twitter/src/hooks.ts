@@ -472,7 +472,7 @@ export class TwitterPrePostHookHandler {
         3. Using more neutral language
         4. Ensuring it aligns with professional and inclusive communication standards
         5. Maintaining the same general topic and information
-        6. Keeping within 280 characters
+        6. Keeping within 145 characters
         7. IMPORTANT: Include all original URLs/links from the original tweet${urlString}
         
         Provide only the rewritten tweet without explanations or quotes.
@@ -554,7 +554,7 @@ export class TwitterPrePostHookHandler {
         5. Ensuring it's relevant to current trends or interests
         6. Using more dynamic sentence structure
         7. Including relevant hashtags at the end
-        8. Keeping within 280 characters
+        8. Keeping within 145 characters
         9. IMPORTANT: Include all original URLs/links from the original tweet${urlString}
         
         Provide only the rewritten tweet without explanations or quotes.
@@ -636,11 +636,7 @@ export class TwitterPrePostHookHandler {
       const searchQueryPrompt = `
         Tweet topic: "${mainTopic}"
         
-        Create a specific search query to find a credible source related to this topic.
-        Focus on key terms and entities mentioned in the topic.
-        The query should be optimized for finding scientific papers, news articles, or official reports.
-        
-        Return only the search query text, without quotes or explanations.
+      
       `;
       
       const searchQuery = await generateText({
@@ -685,11 +681,7 @@ export class TwitterPrePostHookHandler {
         Search results:
         ${resultsContext}
         
-        Select the SINGLE best result number (1-5) that is most relevant and credible for this topic.
-        Consider source credibility, relevance, and recency.
-        Prefer academic sources, government agencies, or respected organizations.
         
-        Return only the result number (1-5) and nothing else.
       `;
       
       const bestResultIndex = await generateText({
