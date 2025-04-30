@@ -38,6 +38,8 @@ import { MediaData } from "./types.ts";
 import { TwitterPrePostHookHandler } from "./hooks.ts";
 import { TweetChecker } from "./checks.ts";
 import { TweetData, TweetDataSender } from "./database.ts";
+import Together from "together-ai";
+import OpenAI from "openai";
 const MAX_TIMELINES_TO_FETCH = 15;
 
 
@@ -137,6 +139,271 @@ export class TwitterPostClient {
     private approvalRequired = false;
     private discordApprovalChannelId: string;
     private approvalCheckInterval: number;
+
+    // Define meme categories and their associated emotions/themes
+    private readonly MEME_CATEGORIES = [
+        {
+            category: "climate_action",
+            emotions: ["urgent", "determined", "passionate"],
+            themes: ["environmental", "sustainability", "climate change"],
+            formats: ["drake", "distracted_boyfriend", "expanding_brain"],
+            fonts: {
+                title: "Impact",
+                text: "Arial Black",
+                emphasis: "Helvetica Bold"
+            }
+        },
+        {
+            category: "sustainability_humor",
+            emotions: ["satirical", "humorous", "witty"],
+            themes: ["recycling", "green energy", "eco-friendly"],
+            formats: ["guy_tapping_head", "surprised_pikachu", "this_is_fine"],
+            fonts: {
+                title: "Comic Sans MS",
+                text: "Verdana",
+                emphasis: "Comic Sans MS Bold"
+            }
+        },
+        {
+            category: "environmental_critique",
+            emotions: ["angry", "frustrated", "cynical"],
+            themes: ["pollution", "corporate greed", "climate denial"],
+            formats: ["angry_arthur_fist", "woman_yelling_at_cat", "change_my_mind"],
+            fonts: {
+                title: "Oswald",
+                text: "Roboto",
+                emphasis: "Oswald Bold"
+            }
+        }
+    ];
+
+    // Define personality types for different rant styles
+    private readonly RANT_PERSONALITIES = [
+        {
+            type: "earnest",
+            persona: "Al Gore",
+            style: "Earnest, wonky, serious",
+            traits: {
+                tone: "academic",
+                approach: "fact-based",
+                emotionalRange: "concerned but hopeful",
+                keyThemes: ["scientific evidence", "urgent action", "systemic solutions"],
+                memeProbability: 0.15, // 15% chance of including a meme
+                preferredMemeCategories: ["climate_action", "sustainability_humor"]
+            }
+        },
+        {
+            type: "comedic",
+            persona: "George Carlin",
+            style: "Cynical, comedic",
+            traits: {
+                tone: "satirical",
+                approach: "brutally honest",
+                emotionalRange: "angry to absurdist",
+                keyThemes: ["societal criticism", "human folly", "environmental destruction"],
+                memeProbability: 0.40, // 40% chance of including a meme
+                preferredMemeCategories: ["environmental_critique", "sustainability_humor"]
+            }
+        },
+        {
+            type: "spirited",
+            persona: "AOC",
+            style: "Spirited, witty",
+            traits: {
+                tone: "passionate",
+                approach: "relatable",
+                emotionalRange: "determined to inspirational",
+                keyThemes: ["social justice", "systemic change", "community impact"],
+                memeProbability: 0.25, // 25% chance of including a meme
+                preferredMemeCategories: ["climate_action", "environmental_critique"]
+            }
+        }
+    ];
+
+    // Define image generation configuration
+    private readonly IMAGE_GENERATION_CONFIG = {
+        openai: {
+            model: "dall-e-3",
+            size: "1024x1024" as "1024x1024",
+            quality: "standard" as "standard" | "hd",
+            n: 1
+        },
+        together: {
+            model: "black-forest-labs/FLUX.1-schnell",
+            steps: 4,
+            width: 1024,
+            height: 1024
+        },
+        pexels: {
+            perPage: 5,
+            orientation: "landscape"
+        }
+    };
+
+    private async generateImageFromPexels(query: string): Promise<string | null> {
+        const PEXEL_API_KEY = this.runtime.getSetting("PEXEL_API_KEY");
+        if (!PEXEL_API_KEY) {
+            elizaLogger.error("PEXEL_API_KEY is not defined");
+            return null;
+        }
+
+        try {
+            const response = await fetch(
+                `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=${this.IMAGE_GENERATION_CONFIG.pexels.perPage}&orientation=${this.IMAGE_GENERATION_CONFIG.pexels.orientation}`,
+                {
+                    headers: {
+                        Authorization: PEXEL_API_KEY,
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch image: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.photos.length === 0) {
+                return null;
+            }
+
+            // Select a random image from results
+            const randomIndex = Math.floor(Math.random() * data.photos.length);
+            return data.photos[randomIndex].src.large;
+        } catch (error) {
+            elizaLogger.error("Error fetching image from Pexels:", error);
+            return null;
+        }
+    }
+
+    private async generateImageFromOpenAI(prompt: string): Promise<string | null> {
+        const OPENAI_API_KEY = this.runtime.getSetting("OPENAI_API_KEY");
+        if (!OPENAI_API_KEY) {
+            elizaLogger.error("OPENAI_API_KEY is not defined");
+            return null;
+        }
+
+        try {
+            const openai = new OpenAI({
+                apiKey: OPENAI_API_KEY,
+            });
+
+            const response = await openai.images.generate({
+                model: this.IMAGE_GENERATION_CONFIG.openai.model,
+                prompt: prompt,
+                size: this.IMAGE_GENERATION_CONFIG.openai.size,
+                quality: this.IMAGE_GENERATION_CONFIG.openai.quality,
+                n: this.IMAGE_GENERATION_CONFIG.openai.n
+            });
+
+            if (!response.data || response.data.length === 0) {
+                throw new Error("No image generated by OpenAI");
+            }
+
+            const imageData = response.data[0];
+            const imageUrl = 'url' in imageData ? imageData.url : imageData.b64_json;
+            if (!imageUrl || typeof imageUrl !== 'string') {
+                throw new Error("No valid image URL or base64 data returned by OpenAI");
+            }
+
+            return imageUrl;
+        } catch (error) {
+            elizaLogger.error("Error generating image with OpenAI:", error);
+            return null;
+        }
+    }
+
+    private async generateImageFromTogether(prompt: string): Promise<string | null> {
+        const TOGETHER_API_KEY = this.runtime.getSetting("TOGETHER_API_KEY");
+        if (!TOGETHER_API_KEY) {
+            elizaLogger.error("TOGETHER_API_KEY is not defined");
+            return null;
+        }
+
+        try {
+            const together = new Together({
+                apiKey: TOGETHER_API_KEY,
+            });
+
+            const response = await together.images.create({
+                prompt: prompt,
+                model: this.IMAGE_GENERATION_CONFIG.together.model,
+                steps: this.IMAGE_GENERATION_CONFIG.together.steps,
+                width: this.IMAGE_GENERATION_CONFIG.together.width,
+                height: this.IMAGE_GENERATION_CONFIG.together.height
+            });
+
+            if (!response || !response.data || response.data.length === 0) {
+                throw new Error("No image generated by Together AI");
+            }
+
+            const imageUrl = 'url' in response.data[0] ? response.data[0].url : response.data[0].b64_json;
+            if (!imageUrl) {
+                throw new Error("No image URL returned by Together AI");
+            }
+
+            // Ensure we have a string URL, otherwise return null
+            return typeof imageUrl === 'string' ? imageUrl : null;
+        } catch (error) {
+            elizaLogger.error("Error generating image with Together:", error);
+            return null;
+        }
+    }
+
+    async generateImageForTweet(tweetText: string): Promise<string | null> {
+        const imagePrompt = await generateText({
+            runtime: this.runtime,
+            context: `Given this tweet, create a concise and creative prompt for generating a realistic image that captures its mood, theme, and key details. Avoid requesting text or watermarks. Tweet: ${tweetText}`,
+            modelClass: ModelClass.MEDIUM,
+            stop: ["\n"]
+        });
+
+        if (!imagePrompt) {
+            elizaLogger.error("Failed to generate image prompt");
+            return null;
+        }
+
+        // Try Pexels first
+        let imageUrl = await this.generateImageFromPexels(imagePrompt);
+        if (imageUrl) {
+            return imageUrl;
+        }
+
+        // Try OpenAI as second option
+        imageUrl = await this.generateImageFromOpenAI(imagePrompt);
+        if (imageUrl) {
+            return imageUrl;
+        }
+
+        // Try Together AI as final fallback
+        imageUrl = await this.generateImageFromTogether(imagePrompt);
+        return imageUrl;
+    }
+
+    // Define arrays for tracking notable personalities and safe accounts to tag
+    private readonly NOTABLE_PERSONALITIES = [
+        { handle: "elonmusk", name: "Elon Musk", categories: ["tech", "energy"] },
+        { handle: "AOC", name: "Alexandria Ocasio-Cortez", categories: ["politics", "climate"] },
+        { handle: "GretaThunberg", name: "Greta Thunberg", categories: ["climate", "activism"] },
+        { handle: "JoeBiden", name: "Joe Biden", categories: ["politics"] },
+        { handle: "BillGates", name: "Bill Gates", categories: ["tech", "philanthropy"] },
+        { handle: "KimKardashian", name: "Kim Kardashian", categories: ["celebrity"] },
+        { handle: "Larry_Fink", name: "Larry Fink", categories: ["finance"] },
+        { handle: "GavinNewsom", name: "Gavin Newsom", categories: ["politics"] },
+        { handle: "algore", name: "Al Gore", categories: ["politics", "climate"] },
+        { handle: "taylorswift13", name: "Taylor Swift", categories: ["celebrity"] },
+        { handle: "JaneFonda", name: "Jane Fonda", categories: ["celebrity", "activism"] },
+        { handle: "NaomiAKlein", name: "Naomi Klein", categories: ["author", "climate"] },
+        { handle: "JohnKerry", name: "John Kerry", categories: ["politics", "climate"] },
+        { handle: "GeorgeMonbiot", name: "George Monbiot", categories: ["journalist", "climate"] },
+        { handle: "JoeManchin", name: "Joe Manchin", categories: ["politics"] }
+    ];
+
+    // SAFE accounts that we can actually tag in tweets
+    private readonly SAFE_ACCOUNTS_TO_TAG = [
+        "CarbonSustainAi",
+        "pbryzek",
+        "CarbonTruth"
+    ];
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
         this.client = client;
@@ -257,10 +524,7 @@ export class TwitterPostClient {
                 );
             }
         );
-        // Login to Discord
-        this.discordClientForApproval.login(
-            this.runtime.getSetting("TWITTER_APPROVAL_DISCORD_BOT_TOKEN")
-        );
+        
     }
 
     async start() {
@@ -644,18 +908,50 @@ Tweet: ${tweetTextForPosting}
 * 12. Make the tone feel conversational and authentic — vary sentence style and rhythm from tweet to tweet.
 `;
 
-            // elizaLogger.info("Fixing Tweet:\n" + (fixTweet as string));
+            elizaLogger.info("Fixing Tweet:\n" + (fixTweet as string));
             
-            // const fixedTweet = await generateText({
-            //     runtime,
-            //     context: fixTweet,
-            //     modelClass: ModelClass.MEDIUM,
-            //     stop: ["\n"],
-            // });   
+            let fixedTweet = tweetTextForPosting;
+            try {
+                let retryCount = 0;
+                const maxRetries = 2; // Reduced from 3 to 2
+                let retryDelay = 1000; // Start with 1 second delay
 
-            // elizaLogger.info("Fixed Tweet:\n" + (fixedTweet as string));
+                while (retryCount <= maxRetries) {
+                    const response = await generateText({
+                        runtime: this.runtime,
+                        context: fixTweet,
+                        modelClass: ModelClass.MEDIUM,
+                        stop: ["\n"]
+                    });
 
-            // tweetTextForPosting = fixedTweet.trim();
+                    // Check if we got a valid response
+                    if (response && typeof response === 'string' && response.trim().length > 0) {
+                        elizaLogger.info("Fixed Tweet Response:\n" + response);
+                        fixedTweet = response.trim();
+                        break; // Exit loop if we got a valid response
+                    }
+
+                    // If no valid response, increment retry count and delay
+                    retryCount++;
+                    if (retryCount <= maxRetries) {
+                        elizaLogger.warn(`Empty or invalid response, attempt ${retryCount} of ${maxRetries}`);
+                        await new Promise(resolve => setTimeout(resolve, retryDelay));
+                        retryDelay *= 2; // Exponential backoff
+                    }
+                }
+
+                // If we exhausted retries, keep original tweet
+                if (retryCount > maxRetries) {
+                    elizaLogger.warn("Max retries reached, using original tweet text");
+                    fixedTweet = tweetTextForPosting;
+                }
+            } catch (error) {
+                elizaLogger.error("Error fixing tweet, using original:", error);
+                fixedTweet = tweetTextForPosting;
+            }
+
+            // Update the tweet text with fixed version
+            tweetTextForPosting = fixedTweet;
 
             try {
                 const tweetInfo = {

@@ -87,7 +87,7 @@ export class TweetDataSender {
      * Create a new TweetDataSender
      * @param apiUrl - The URL of the API endpoint
      */
-    constructor(apiUrl: string = 'http://127.0.0.1:5000/api/tweets') {
+    constructor(apiUrl: string = 'http://127.0.0.1:9004/api/tweets') {
         this.apiUrl = apiUrl;
     }
     /**
