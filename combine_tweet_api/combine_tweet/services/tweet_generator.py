@@ -23,8 +23,8 @@ class TweetGenerator:
         self.api_client = ExternalAPIClient()
 
         # Blend ratios
-        self.fact_weight = 0.9  # default 70% facts
-        self.rant_weight = 0.1  # default 30% rant
+        self.fact_weight = 0.7  # default 70% facts
+        self.rant_weight = 0.3  # default 30% rant
 
     def set_blend_ratio(self, fact_weight, rant_weight):
         if not abs((fact_weight + rant_weight) - 1.0) < 0.01:
@@ -41,6 +41,7 @@ class TweetGenerator:
 
         fact_part = carbon_text.strip()[:fact_length]
         rant_part = rant_text.strip()[:rant_length]
+        print(fact_length, rant_length,fact_part, rant_part)
 
         return f"""
 You are {CHARACTER['persona_name']} — {CHARACTER['persona_description']}.

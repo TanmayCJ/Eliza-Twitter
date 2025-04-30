@@ -1,7 +1,7 @@
 from combine_tweet.models import CarbonTruthTweet, CarbonRantTweet
 
 class DatabaseManager:
-    """Use Django ORM for database operations"""
+    """Using Django ORM for database operations"""
     @staticmethod
     def get_latest_entries():
         carbon = CarbonTruthTweet.objects.values('content').first()

@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+from django.conf import settings
 from google import genai  # <-- add this
 from dotenv import load_dotenv
 
@@ -10,7 +11,7 @@ load_dotenv()
 logging.basicConfig(level=logging.ERROR)
 
 # Load CHARACTER data
-with open(r'D:\project\new\carbonsustain1\api\character3.json', 'r', encoding='utf-8') as file:
+with open(os.path.join(settings.BASE_DIR, 'combine_tweet', 'character3.json')) as file:
     CHARACTER = json.load(file)
 
 # Configure the Gemini API key
