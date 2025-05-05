@@ -8,9 +8,9 @@ from rest_framework.response import Response
 from rest_framework import status
 
 # Local App
-from .utils.caption_service.caption_service_handler import CaptionService
-from .utils.popularity_service.popularity_service_handler import PopularityAPI
-from .utils.safety_service.safety_service_handler import SafetyService
+from .utils.caption_service import CaptionService
+from .utils.popularity_service import PopularityAPI
+from .utils.safety_service import SafetyService
 from .models import CarbonTruthTweet, CarbonRantTweet, DefaultTweet, CarbonSustainAITweet
 from .serializers import (
     CarbonTruthTweetSerializer, CarbonRantTweetSerializer,
