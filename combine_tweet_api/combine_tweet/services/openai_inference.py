@@ -2,7 +2,15 @@ import os
 import json
 import logging
 from django.conf import settings
-from google import genai  # <-- add this
+from google import genai  
+from google.genai import types
+from google.genai.types import (
+    GenerateContentConfig,
+    HarmCategory,
+    HarmBlockThreshold,
+    HttpOptions,
+    SafetySetting,
+) 
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,13 +18,32 @@ load_dotenv()
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
 
-# Load CHARACTER data
+
 with open(os.path.join(settings.BASE_DIR, 'combine_tweet', 'character3.json')) as file:
     CHARACTER = json.load(file)
 
 # Configure the Gemini API key
-client=genai.Client(api_key=os.getenv("YOUR_API_KEY"))# <-- use your env var here
+client=genai.Client(api_key=os.getenv("YOUR_API_KEY"))
 
+system_instruction = "You are twitter bot that combines data-driven factual reporting with sharp, edgy commentary to highlight climate issues and sustainability"
+safety_settings = [
+    SafetySetting(
+        category=HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+    ),
+    SafetySetting(
+        category=HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+    ),
+    SafetySetting(
+        category=HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+    ),
+    SafetySetting(
+        category=HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+    ),
+]
 # Keep your existing generation_config if you like:
 generation_config = {
     "temperature": 0.7,
@@ -37,11 +64,6 @@ class TweetLLM:
             f"Style guidelines: {self.character['style_guidelines']}\n"
             f"EXAMPLE TWEETS:\n"
         )
-
-        '''for ex in self.examples['fact']:
-            self.persona_base += f"- {ex}\n"
-        for ex in self.examples['mixed']:
-            self.persona_base += f"- {ex}\n"'''
 
     def generate(self, prompt, max_tokens=60, temperature=0.7):
         character_json = json.dumps(self.character, indent=2)
@@ -74,12 +96,21 @@ class TweetLLM:
             cfg["temperature"] = temperature
             cfg["max_output_tokens"] = max_tokens
             total_tokens = client.models.count_tokens(
-                model="gemini-2.0-flash", contents=full_prompt
+                model="gemini-2.0-flash-001", 
+                contents=full_prompt,
             )
             print("total_tokens: ", total_tokens)
             response = client.models.generate_content(
                 model="gemini-2.0-flash",
-                contents=full_prompt
+                contents=full_prompt,
+                config=types.GenerateContentConfig(temperature= 0.7,
+                top_p= 0.95,
+                top_k=64,
+                max_output_tokens= 60,
+                system_instruction=system_instruction,
+                safety_settings=safety_settings,
+                response_mime_type= "text/plain"
+            )
                 
             )
             generated = response.text
@@ -114,7 +145,7 @@ class TweetLLM:
             "1. Analyze the central topic, entities, and claims in each tweet\n"
             "2. Determine if they discuss the same environmental issue, policy, or solution\n"
             "3. Calculate the relatedness score between the two tweets\n"
-            "4. If the relatedness score is less than 0.7, return False\n"
+            "4. If the relatedness score is less than 0.2, return False\n"
             "5. Respond with ONLY ONE of these exact phrases:\n"
             "   - 'RELATED' - if they share core topics and could be merged coherently\n"
             "   - 'UNRELATED' - if combining them would result in an unfocused, disconnected message\n\n"

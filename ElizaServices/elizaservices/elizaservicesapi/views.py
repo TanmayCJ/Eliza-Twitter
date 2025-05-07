@@ -16,10 +16,12 @@ from .serializers import (
     CarbonTruthTweetSerializer, CarbonRantTweetSerializer,
     DefaultTweetSerializer, CarbonSustainAITweetSerializer
 )
+from .utils.twitter_trends_service.twitter_trends_handler import TwitterTrendsService
 
 caption_service = CaptionService()
 popularity_service = PopularityAPI()
 safety_service = SafetyService()
+twitter_trends_service = TwitterTrendsService()
 
 SENDER_MODEL_MAP = {
     'carbontruth': (CarbonTruthTweet, CarbonTruthTweetSerializer),
@@ -156,3 +158,25 @@ class SingleTweetView(APIView):
 class ValidSendersView(APIView):
     def get(self, request):
         return Response(list(SENDER_MODEL_MAP.keys()), status=status.HTTP_200_OK)
+
+class TwitterTrendsView(APIView):
+    def get(self, request):
+        selected_index = request.query_params.get('index', 0)
+        try:
+            selected_index = int(selected_index)
+            result = twitter_trends_service.get_trends(selected_index)
+            if 'error' in result:
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            return Response(result)
+        except ValueError:
+            return Response({"error": "Index must be an integer"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class TwitterTimeframesView(APIView):
+    def get(self, request):
+        try:
+            timeframes = twitter_trends_service.get_timeframes()
+            return Response({"timeframes": timeframes})
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

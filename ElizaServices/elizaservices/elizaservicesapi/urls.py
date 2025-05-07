@@ -6,7 +6,9 @@ from .views import (
     TweetsView,
     LatestTweetView,
     SingleTweetView,
-    ValidSendersView
+    ValidSendersView,
+    TwitterTrendsView,
+    TwitterTimeframesView
 )
 
 urlpatterns = [
@@ -17,4 +19,6 @@ urlpatterns = [
     path('tweets/latest/', LatestTweetView.as_view(), name='latest-tweet'),
     path('tweets/senders/', ValidSendersView.as_view(), name='valid-senders'),
     path('tweets/<str:tweet_id>/', SingleTweetView.as_view(), name='tweet-detail'),
+    path('twitter/trends/', TwitterTrendsView.as_view(), name='twitter-trends'),
+    path('twitter/timeframes/', TwitterTimeframesView.as_view(), name='twitter-timeframes'),
 ]

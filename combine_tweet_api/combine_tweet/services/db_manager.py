@@ -12,5 +12,5 @@ class DatabaseManager:
             },
             'rant_tweet': {
                 'content': rant['content'] if rant else None
-            }
+            }               
         }
