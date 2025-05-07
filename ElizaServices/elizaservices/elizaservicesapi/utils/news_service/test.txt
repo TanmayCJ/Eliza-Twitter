@@ -1,0 +1,82 @@
+{
+    "news": [
+        {
+            "title": "US Army Corps Targets Fall Decision for Enbridge Line 5 Tunnel",
+            "date": "2025-05-02",
+            "location": "United States",
+            "summary": "The U.S. Army Corps of Engineers announced plans to decide by fall 2025 on granting a permit for Enbridge's proposed Great Lakes tunnel for its Line 5 oil pipeline. The project, facing opposition from Native American tribes and environmental groups, aims to build a tunnel beneath the Straits of Mackinac to house the aging pipeline.",
+            "url": "https://www.reuters.com/business/energy/us-army-corps-targeting-fall-decision-enbridge-line-5-tunnel-2025-05-02/",
+            "event_type": "policy",
+            "emotion_score": {
+                "Rage": 0.6,
+                "Hope": 0.4,
+                "Fear": 0.5
+            }
+        },
+        {
+            "title": "White House Unveils Trump's 2026 Proposed Budget",
+            "date": "2025-05-02",
+            "location": "United States",
+            "summary": "President Donald Trump's proposed 2026 budget prioritizes increased national security spending while slashing $163 billion in non-defense domestic programs, including cuts to climate initiatives and diversity programs. Concerns have been raised over funding reductions to public broadcasters and efforts to eliminate school desegregation orders.",
+            "url": "https://apnews.com/article/962424454ca035b4a74e80a0e4dfd936",
+            "event_type": "policy",
+            "emotion_score": {
+                "Rage": 0.7,
+                "Hope": 0.2,
+                "Fear": 0.6
+            }
+        },
+        {
+            "title": "2025 May Day Protests Held Across United States",
+            "date": "2025-05-01",
+            "location": "United States",
+            "summary": "On May 1, 2025, over 1,000 protests were organized across the United States as part of the 50501 movement. Demonstrators opposed the Trump administration and its billionaire backers, accusing them of rolling back labor rights and targeting immigrants. The protests followed a series of related demonstrations earlier in the year.",
+            "url": "https://en.wikipedia.org/wiki/2025_May_Day_protests",
+            "event_type": "activism",
+            "emotion_score": {
+                "Rage": 0.5,
+                "Hope": 0.6,
+                "Fear": 0.3
+            }
+        },
+        {
+            "title": "Alberta Government Lifts Ban on Coal Exploration in Eastern Slopes",
+            "date": "2025-01-20",
+            "location": "Canada",
+            "summary": "In January 2025, Alberta's Energy and Minerals Minister Brian Jean lifted the moratorium on coal exploration and development in the Eastern Slopes of the Rocky Mountains. The decision, made without public consultation, opened approximately 190,000 hectares of environmentally sensitive land to potential coal projects, sparking strong opposition from environmental groups and First Nations.",
+            "url": "https://en.wikipedia.org/wiki/Alberta_coal_policy_controversy",
+            "event_type": "policy",
+            "emotion_score": {
+                "Rage": 0.8,
+                "Hope": 0.2,
+                "Fear": 0.7
+            }
+        },
+        {
+            "title": "Tornado Outbreak and Floods Devastate Southern and Midwestern US",
+            "date": "2025-04-07",
+            "location": "United States",
+            "summary": "Between April 2–7, 2025, a slow-moving weather system caused a widespread tornado outbreak and historic flash flooding across the Southern and Midwestern United States. The event resulted in 24 fatalities, including nine from tornadoes and 15 from flooding, with at least 47 injuries reported.",
+            "url": "https://en.wikipedia.org/wiki/Tornado_outbreak_and_floods_of_April_2%E2%80%937%2C_2025",
+            "event_type": "disaster",
+            "emotion_score": {
+                "Rage": 0.3,
+                "Hope": 0.1,
+                "Fear": 0.9
+            }
+        },
+        {
+            "title": "Stand Up for Science 2025 Rallies Held Across US and France",
+            "date": "2025-03-07",
+            "location": "United States and France",
+            "summary": "On March 7, 2025, scientists and supporters held demonstrations in over 30 U.S. cities and multiple locations in France to protest policy changes under the Trump administration affecting scientific research. The rallies aimed to oppose freezes on scientific grants, dismissals of government scientists, and cuts to diversity initiatives.",
+            "url": "https://en.wikipedia.org/wiki/Stand_Up_for_Science_2025",
+            "event_type": "activism",
+            "emotion_score": {
+                "Rage": 0.6,
+                "Hope": 0.7,
+                "Fear": 0.4
+            }
+        }
+    ]
+}

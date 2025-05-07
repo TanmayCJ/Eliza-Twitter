@@ -81,6 +81,7 @@
     "@coinbase/coinbase-sdk": "0.10.0",
     "@deepgram/sdk": "^3.11.1",
     "@elizaos-plugins/adapter-sqlite": "workspace:*",
+    "@google/genai": "^0.10.0",
     "@injectivelabs/sdk-ts": "^1.14.33",
     "@vitest/eslint-plugin": "1.0.1",
     "agentkeepalive": "^4.6.0",

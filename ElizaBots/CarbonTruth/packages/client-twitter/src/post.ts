@@ -813,15 +813,16 @@ Tweet: ${tweetTextForPosting}
         Mid part of the tweet.\n
 
         Final thought, link, or hashtags.
-* 4. Vary the total length of tweets — not all should be long. Some should be punchy and short, others more expressive.
-* 5. Optionally start with a casual greeting about 15% of the time based on current time.
-* 6. Limit the number of hashtags to a maximum of 2.
-* 7. Prefer turning relevant keywords already present in the tweet into hashtags, rather than adding new ones.
-* 8. Place hashtags naturally — either integrated into the sentence or grouped at the end (with proper spacing).
-* 9. Ensure links are easy to find — preferably near the end, but not strictly required.
-* 10. Keep the tweet's total character count under 280.
-* 11. Preserve the original meaning and core message of the tweet.
-* 12. Make the tone feel conversational and authentic — vary sentence style and rhythm from tweet to tweet.
+* 4. Vary the total length of tweets — aim to keep the total length under 280 characters.
+* 5. Optionally start with a casual greeting about 20% of the time, based on the current time. Avoid using phrases like "Hey" or "Hey, it's 8:00 PM."
+* 6. The casual greeting should be relevant to the content of the tweet and not generic, but only in about 20% of cases.
+* 7. Limit the number of hashtags to a maximum of 2.
+* 8. Prefer turning relevant keywords already present in the tweet into hashtags, rather than adding new ones.
+* 9. Place hashtags naturally — either integrated into the sentence or grouped at the end (with proper spacing).
+* 10. Ensure links are easy to find — preferably near the end, but not strictly required.
+* 11. Keep the tweet’s total character count at or under 280 characters.
+* 12. Preserve the original meaning and core message of the tweet.
+* 13. Make the tone feel conversational and authentic — vary sentence style and rhythm from tweet to tweet, but always aim for conciseness.
 `;
 
             elizaLogger.info("Fixing Tweet:\n" + (fixTweet as string));
@@ -945,7 +946,7 @@ Tweet: ${tweetTextForPosting}
                 tweetTextForPosting // Use the modified tweet text as the raw content
             );
         } catch (error) {
-            elizaLogger.error("Error sending tweet:", error);
+            elizaLogger.error("Error sending tweet:", error as string);
         }
     }
 
@@ -1091,7 +1092,7 @@ Tweet: ${tweetTextForPosting}
                     );
                 }
             } catch (error) {
-                elizaLogger.error("Error sending tweet:", error);
+                elizaLogger.error("Error sending tweet:", error as string);
             }
         } catch (error) {
             elizaLogger.error("Error generating new tweet:", error);

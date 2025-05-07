@@ -10,6 +10,11 @@ import {
 } from "@elizaos/core";
 import dotenv from "dotenv";
 
+import { GoogleGenAI } from "@google/genai";
+
+import { OpenAI } from "openai";
+import { json } from "stream/consumers";
+
 dotenv.config({ path: '../../../.env' });
 
 interface NewsApiResponse {
@@ -31,9 +36,12 @@ class NewsService {
   private readonly API_KEY_NEWS: string;
   private readonly API_KEY_GNEWS: string;
   private readonly API_KEY_TINYURL: string;
+  private readonly API_KEY_GEMINI: string;
+  private readonly API_KEY_OPENAI: string;
   private readonly BASE_URL_NEWS: string = "https://newsapi.org/v2/everything";
   private readonly BASE_URL_GNEWS: string = "https://gnews.io/api/v4/top-headlines";
-  private readonly COUNTRIES: string[] = ["us", "ca", "uk"]; // us, ca, uk, au, de, fr, in, it, jp, mx, nl, no, ru, se, sg, za
+  private readonly BASE_URL_GEMINI: string = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+  private readonly COUNTRIES: string[] = ["US", "CA"]; // us, ca, uk, au, de, fr, in, it, jp, mx, nl, no, ru, se, sg, za
   
   private params: Record<string, string | number | undefined>;
 
@@ -41,6 +49,8 @@ class NewsService {
     this.API_KEY_NEWS = process.env.NEWS_API_KEY as string;
     this.API_KEY_GNEWS = process.env.GNEWS_API_KEY as string;
     this.API_KEY_TINYURL = process.env.TINY_URL_API_KEY as string;
+    this.API_KEY_GEMINI = process.env.GOOGLE_MODEL as string;
+    this.API_KEY_OPENAI = process.env.OPENAI_API_KEY as string;
     
     this.params = {
       country: undefined,
@@ -54,6 +64,7 @@ class NewsService {
     if (!this.API_KEY_NEWS) elizaLogger.warn("NEWS_API_KEY not found in environment variables");
     if (!this.API_KEY_GNEWS) elizaLogger.warn("GNEWS_API_KEY not found in environment variables");
     if (!this.API_KEY_TINYURL) elizaLogger.warn("TINY_URL_API_KEY not found in environment variables");
+    if (!this.API_KEY_GEMINI) elizaLogger.warn("GEMINI_API_KEY not found in environment variables");
   }
 
   private getRandomCountry(): string {
@@ -142,49 +153,88 @@ class NewsService {
       .join("\n\n");
   }
   
-  private buildNewsPrompt(articlesText: string): string {
+  async buildNewsPrompt(articlesText: string): Promise<string> {
+
+    const sender = "carbontruth"; // or "default"
+    const count = 10;
+    const apiUrl = `http://127.0.0.1:5000/api/tweets/latest_n?sender=${sender}&count=${count}`;
+
+    let existingArticles = "";
+
+    try {
+      const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+      });
+
+      if (!response.ok) {
+          throw new Error(`Error: ${response.status} - ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      existingArticles = String(data.tweets) as string;  
+      elizaLogger.log('Latest Tweets:', existingArticles);
+    } catch (error) {
+      elizaLogger.error('Failed to fetch latest tweets:', error);
+    }
+    
+    
     return `
-      You are a system that selects the most relevant news about carbon sustainability, environmental conservation, or pollution.
-      
+      You are a system that selects the most relevant news articles about carbon sustainability, environmental conservation, or pollution.
+
       - Pick the most relevant article on climate change, renewable energy, deforestation, or carbon emissions.
-      - Ignore articles on politics, general science, or unrelated tech.
-      - Do not include any articles that are not relevant to the topic.
-      - Do not include any articles that are not in English.
-      - Do not include any articles related to product launches.
-      - Do not include any articles that might sound promotional.
-      - Return ONLY a valid JSON object with keys: 'content' and 'url'. No extra text.
+      - Ignore articles on general science or unrelated technology.
+      - Do not include articles that are not relevant to the topic.
+      - Do not include articles that are not in English.
+      - Do not include articles related to product launches.
+      - Do not include articles that may sound promotional.
+      - Include articles related to any bills or government actions only 15% of the time, not every time.
+      - Return ONLY a valid JSON object with the keys: 'content' and 'url'. No extra text.
       - Elaborate on the article content and provide a summary.
-      
+
       Articles:
       ${articlesText}
-      
+
+      Existing Articles:
+      ${existingArticles}
+
+      Ignore the existing articles and focus on the new articles.
+
       Respond with:
       {"content": "[Chosen news content/summary]", "url": "[Chosen news URL]"}
     `;
-  }
+}
+
   
   async fetchNews(runtime: IAgentRuntime, message: Memory): Promise<string | null> {
     // Set random country before fetching news
     this.params.country = this.getRandomCountry();
     elizaLogger.info(`Fetching news for country: ${this.params.country}`);
     
-    const data = await this.fetchNewsFromGnewsApi();
-    if (!data || data.totalResults === 0) {
+    // const data = await this.fetchNewsFromGnewsApi();
+
+
+    const data = await this.fetchGeminiOutput();
+    if (!data) {
       elizaLogger.info("No news articles found");
       return null;
     }
     
-    const articlesText = this.processArticles(data.articles);
-    const prompt = this.buildNewsPrompt(articlesText);
+    // const articlesText = this.processArticles(data.articles);
+    const prompt = await this.buildNewsPrompt(data);
+
+    elizaLogger.info("Prompt for news generation:", String(prompt) as string);
     
     elizaLogger.info("Generating news prompt");
     let chosenNews = await generateText({
       runtime,
       context: prompt,
-      modelClass: ModelClass.SMALL,
+      modelClass: ModelClass.MEDIUM,
       stop: ["\n"],
     });
-    elizaLogger.info("News prompt generated");
+    elizaLogger.info("News prompt generated", String(chosenNews) as string);
     
     try {
       const newsJSON = JSON.parse(chosenNews);
@@ -206,6 +256,97 @@ class NewsService {
       .replace("{{maxTweetLength}}", "280");
     
     return formattedNews;
+  }
+
+  /**
+   * Fetches environmental and sustainability news from Gemini LLM
+   * @param temperature Optional temperature parameter (0.0 to 1.0) controlling randomness
+   * @returns News data in the same format as fetchNewsFromGnewsApi or null if there was an error
+   */
+  async fetchGeminiOutput(temperature: number = 0.7): Promise<string | null> {
+    if (!this.API_KEY_GEMINI) {
+      elizaLogger.error("Gemini API key not found!");
+      return null;
+    }
+    const openai = new OpenAI({
+      apiKey: this.API_KEY_OPENAI,
+    });
+
+    const prompt = `
+Fetch 10 latest news (preferably within the last 2 days) about:
+- Environmental issues (e.g., climate change, conservation efforts, pollution control)
+- Sustainability (e.g., renewable energy, green initiatives, eco-friendly innovations)
+- Conservation projects (wildlife, forests, oceans, etc.)
+- Climate policies, environmental activism, green legislation
+- Conferences, summits, and events focused on environmental protection or sustainability
+
+IMPORTANT: 
+- Focus ONLY on the following countries: ${this.COUNTRIES}.
+- If news from a non-listed country appears, ignore it.
+
+Combine all news into a single JSON array called news.
+For each news item, include:
+- "title": Short headline of the news
+- "date": Date of the news (format: YYYY-MM-DD)
+- "location": Country (or City, Country) where the event/news occurred
+- "summary": Short 2–4 sentence explanation of what happened
+
+If no relevant news is found, output:
+{
+  "news": []
+}
+
+Make sure the final output is in valid JSON format.
+
+Expected JSON structure:
+{
+  "news": [
+    {
+      "title": "Historic Climate Agreement Signed at Global Summit",
+      "date": "2025-04-20",
+      "location": "London, UK",
+      "summary": "World leaders signed a landmark agreement committing to net-zero carbon emissions by 2050. The accord was praised by environmental groups for its ambitious targets.",
+      "url": "https://example.com/news1"
+    },
+    {
+      "title": "New National Park Established to Protect Endangered Species",
+      "date": "2025-04-18",
+      "location": "Ottawa, CA",
+      "summary": "The government announced the creation of a new national park aimed at preserving endangered species. Conservationists welcomed the move as a major win for biodiversity.",
+      "url": "https://example.com/news2"
+    }
+    // More items...
+  ]
+}
+`;
+    elizaLogger.info("Fetching environmental news from Gemini API");
+    
+    try {
+
+      const response = openai.responses.create({
+        model: "gpt-4.1",
+        tools: [
+          {
+            type: "web_search_preview",
+            user_location: {
+              type: "approximate",
+              country: "GB",  
+          }
+          }
+        ],
+        input: prompt as string,
+      });
+      // Process the response
+      const data = (await response).output_text;
+
+      elizaLogger.info("Gemini API response:", JSON.stringify(data));
+      
+      elizaLogger.error("Unexpected response structure from Gemini API:", String(data));
+      return String(data) as string;
+    } catch (error) {
+      elizaLogger.error("Error fetching news from Gemini API", error);
+      return null;
+    }
   }
 }
 
@@ -241,12 +382,12 @@ export const newsProvider: Provider = {
     if (article) {
       elizaLogger.info("News fetched successfully");
       
-      const updatedData: NewsUploadData = {
-        isNews: false,
-        lastUpdatedNews: new Date().toISOString(),
-      };
+      // const updatedData: NewsUploadData = {
+      //   isNews: false,
+      //   lastUpdatedNews: new Date().toISOString(),
+      // };
       
-      await runtime.cacheManager.set(agentKey, updatedData);
+      // await runtime.cacheManager.set(agentKey, updatedData);
       return article;
     }
     

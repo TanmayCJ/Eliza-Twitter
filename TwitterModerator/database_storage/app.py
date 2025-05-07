@@ -260,6 +260,74 @@ def create_app():
             logger.error(f"Unexpected error in get_latest_tweet: {e}")
             return jsonify({'error': str(e)}), 500
     
+    @app.route('/api/tweets/latest_n', methods=['GET'])
+    def get_latest_n_tweets():
+        # Get sender and count parameters
+        sender = request.args.get('sender', 'default')
+        count = request.args.get('count', 5)  # Default to 5 tweets if count is not provided
+        
+        # Validate sender
+        if not is_valid_sender(sender):
+            return jsonify({
+                'error': 'Invalid sender',
+                'valid_senders': VALID_SENDERS
+            }), 400
+        
+        try:
+            count = int(count)
+            if count <= 0:
+                return jsonify({'error': 'Count must be a positive integer'}), 400
+        except ValueError:
+            return jsonify({'error': 'Count must be an integer'}), 400
+        
+        try:
+            TweetModel = get_tweet_model(sender)
+            
+            # Ensure table exists before querying it
+            try:
+                from sqlalchemy import inspect
+                inspector = inspect(db.engine)
+                table_name = TweetModel.__tablename__
+                
+                if table_name not in inspector.get_table_names():
+                    logger.warning(f"Table {table_name} doesn't exist. Creating it now.")
+                    # Create the specific table
+                    TweetModel.__table__.create(db.engine, checkfirst=True)
+                    logger.info(f"Table {table_name} created successfully.")
+                    # If we just created the table, there are no tweets
+                    return jsonify({'message': f'No tweets found for sender: {sender} (table was just created)'}), 404
+            except Exception as e:
+                logger.error(f"Error checking/creating table {TweetModel.__tablename__}: {e}")
+                return jsonify({'error': f'Error accessing database: {str(e)}'}), 500
+                
+            # Get the latest 'n' tweets ordered by id in descending order
+            latest_tweets = TweetModel.query.order_by(TweetModel.id.desc()).limit(count).all()
+            
+            if not latest_tweets:
+                return jsonify({'error': f'No tweets found for sender: {sender}'}), 404
+                
+            return jsonify({
+                'tweets': [tweet.content for tweet in latest_tweets]  # Return only the content of the tweets
+            }), 200
+            
+        except (ProgrammingError, OperationalError) as e:
+            logger.error(f"Database error in get_latest_n_tweets: {e}")
+            # Handle case where table doesn't exist yet
+            try:
+                with app.app_context():
+                    # Get the model for this sender
+                    TweetModel = get_tweet_model(sender)
+                    # Create the specific table
+                    TweetModel.__table__.create(db.engine, checkfirst=True)
+                    logger.info(f"Created table {TweetModel.__tablename__} after error")
+                return jsonify({'error': f'Database error: {str(e)}. Tables have been created, please try again.'}), 500
+            except Exception as inner_e:
+                logger.error(f"Failed to create tables after error: {inner_e}")
+                return jsonify({'error': f'Critical database error: {str(inner_e)}'}), 500
+        except Exception as e:
+            logger.error(f"Unexpected error in get_latest_n_tweets: {e}")
+            return jsonify({'error': str(e)}), 500
+    
     @app.route('/api/senders', methods=['GET'])
     def get_valid_senders():
         """Return a list of valid senders"""
