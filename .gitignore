@@ -424,3 +424,7 @@ test-results/
 *.sample
 
 .python-version
+packages/
+patches/
+scripts/
+tests/

@@ -1,12 +1,8 @@
 import type { Tweet } from "agent-twitter-client";
-import * as fs from "fs";
 import {
     composeContext,
     generateText,
     getEmbeddingZeroVector,
-
-
-
     type IAgentRuntime,
     ModelClass,
     stringToUuid,
@@ -25,6 +21,8 @@ import { type IImageDescriptionService, ServiceType } from "@elizaos/core";
 import { buildConversationThread, fetchMediaData } from "./utils.ts";
 import { twitterMessageHandlerTemplate } from "./interactions.ts";
 import { DEFAULT_MAX_TWEET_LENGTH } from "./environment.ts";
+import { formatHandle, getRecommendedTags, isTaggingEnabled } from "./mentions.ts";
+   
 import {
     Client,
     Events,
@@ -35,57 +33,40 @@ import {
 import type { State } from "@elizaos/core";
 import type { ActionResponse } from "@elizaos/core";
 import { MediaData } from "./types.ts";
+import { v4 as uuidv4 } from 'uuid';
+import type { Memory } from "@elizaos/core";
 import { TwitterPrePostHookHandler } from "./hooks.ts";
-import { TweetChecker } from "./checks.ts";
-import { TweetData, TweetDataSender } from "./database.ts";
-import Together from "together-ai";
-import OpenAI from "openai";
 const MAX_TIMELINES_TO_FETCH = 15;
 
-
-// Twitter post template used for generating tweets
 const twitterPostTemplate = `
-# Your Role: CarbonRant - The Unapologetic Climate Truth-Teller
-
-# Knowledge Base
+# Areas of Expertise
 {{knowledge}}
 
-# Character Profile
-Bio: {{bio}}
-Personality: {{lore}}
+# About {{agentName}} (@{{twitterUserName}}):
+{{bio}}
+{{lore}}
+{{topics}}
 
-# Core Topics & Style
-Topics: {{topics}}
-Tone: Provocative, bold, and unfiltered—deliver climate truth with righteous fury.
+{{providers}}
 
-Style Guidelines:
-- Start with a punch—hit hard with facts or callouts
-- Use sharp, sarcastic tone that exposes climate hypocrisy
-- Call out corporate BS and greenwashing directly
-- Drop climate facts like they're battle raps
-- End with either a savage callout or a fierce call to action
-- Keep it under 280 chars, but make every character count
-- Add 1-2 strategic hashtags (not just decorative)
-- Focus on: climate crisis, corporate accountability, system change
-- Skip: pleasantries, both-sidesism, gentle suggestions
+{{characterPostExamples}}
 
-# Sample Posts
-{{postExamples}}
+{{postDirections}}
 
-# Task: Generate a {{adjective}} tweet about {{topic}} that embodies CarbonRant's rage and purpose.
-Rules:
-- Must be under 280 characters
-- Include 1-2 relevant hashtags (not at end)
-- No emojis or questions
-- Raw truth, real urgency
-- Stats and specifics preferred
-- Call out hypocrisy where relevant
+# Task: Generate a tweet in the voice and style of {{agentName}} @{{twitterUserName}}.
+Write a post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}.
+
+Constraints:
+- Write either 1 or 2 sentences (choose randomly).
+- Maximum total character count: 160.
+- Add 1–2 hashtags.
+- Hashtag placement must vary: sometimes at the start, but mostly at the end.
+- Do NOT use emojis.
+- Do NOT ask questions.
+- Use \\n\\n (double space) between sentences if there are two.
+
+Just output the tweet, nothing else.
 `;
-
-
-
-
-const maxTweetLength = 280; // Updated to Twitter's current max length
 
 
 export const twitterActionTemplate =
@@ -120,8 +101,7 @@ interface PendingTweet {
     tweetTextForPosting: string;
     roomId: UUID;
     rawTweetContent: string;
-    discordMessageId: string;
-    channelId: string;
+    taskId: string;
     timestamp: number;
 }
 
@@ -139,471 +119,685 @@ export class TwitterPostClient {
     private approvalRequired = false;
     private discordApprovalChannelId: string;
     private approvalCheckInterval: number;
-
-    // Define meme categories and their associated emotions/themes
-    private readonly MEME_CATEGORIES = [
-        {
-            category: "climate_action",
-            emotions: ["urgent", "determined", "passionate"],
-            themes: ["environmental", "sustainability", "climate change"],
-            formats: ["drake", "distracted_boyfriend", "expanding_brain"],
-            fonts: {
-                title: "Impact",
-                text: "Arial Black",
-                emphasis: "Helvetica Bold"
-            }
-        },
-        {
-            category: "sustainability_humor",
-            emotions: ["satirical", "humorous", "witty"],
-            themes: ["recycling", "green energy", "eco-friendly"],
-            formats: ["guy_tapping_head", "surprised_pikachu", "this_is_fine"],
-            fonts: {
-                title: "Comic Sans MS",
-                text: "Verdana",
-                emphasis: "Comic Sans MS Bold"
-            }
-        },
-        {
-            category: "environmental_critique",
-            emotions: ["angry", "frustrated", "cynical"],
-            themes: ["pollution", "corporate greed", "climate denial"],
-            formats: ["angry_arthur_fist", "woman_yelling_at_cat", "change_my_mind"],
-            fonts: {
-                title: "Oswald",
-                text: "Roboto",
-                emphasis: "Oswald Bold"
-            }
-        }
-    ];
-
-    // Define personality types for different rant styles
-    private readonly RANT_PERSONALITIES = [
-        {
-            type: "earnest",
-            persona: "Al Gore",
-            style: "Earnest, wonky, serious",
-            traits: {
-                tone: "academic",
-                approach: "fact-based",
-                emotionalRange: "concerned but hopeful",
-                keyThemes: ["scientific evidence", "urgent action", "systemic solutions"],
-                memeProbability: 0.15, // 15% chance of including a meme
-                preferredMemeCategories: ["climate_action", "sustainability_humor"]
-            }
-        },
-        {
-            type: "comedic",
-            persona: "George Carlin",
-            style: "Cynical, comedic",
-            traits: {
-                tone: "satirical",
-                approach: "brutally honest",
-                emotionalRange: "angry to absurdist",
-                keyThemes: ["societal criticism", "human folly", "environmental destruction"],
-                memeProbability: 0.40, // 40% chance of including a meme
-                preferredMemeCategories: ["environmental_critique", "sustainability_humor"]
-            }
-        },
-        {
-            type: "spirited",
-            persona: "AOC",
-            style: "Spirited, witty",
-            traits: {
-                tone: "passionate",
-                approach: "relatable",
-                emotionalRange: "determined to inspirational",
-                keyThemes: ["social justice", "systemic change", "community impact"],
-                memeProbability: 0.25, // 25% chance of including a meme
-                preferredMemeCategories: ["climate_action", "environmental_critique"]
-            }
-        }
-    ];
-
-    // Define image generation configuration
-    private readonly IMAGE_GENERATION_CONFIG = {
-        openai: {
-            model: "dall-e-3",
-            size: "1024x1024" as "1024x1024",
-            quality: "standard" as "standard" | "hd",
-            n: 1
-        },
-        together: {
-            model: "black-forest-labs/FLUX.1-schnell",
-            steps: 4,
-            width: 1024,
-            height: 1024
-        },
-        pexels: {
-            perPage: 5,
-            orientation: "landscape"
-        }
-    };
-
-    private async generateImageFromPexels(query: string): Promise<string | null> {
-        const PEXEL_API_KEY = this.runtime.getSetting("PEXEL_API_KEY");
-        if (!PEXEL_API_KEY) {
-            elizaLogger.error("PEXEL_API_KEY is not defined");
-            return null;
-        }
-
-        try {
-            const response = await fetch(
-                `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=${this.IMAGE_GENERATION_CONFIG.pexels.perPage}&orientation=${this.IMAGE_GENERATION_CONFIG.pexels.orientation}`,
-                {
-                    headers: {
-                        Authorization: PEXEL_API_KEY,
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch image: ${response.status}`);
-            }
-
-            const data = await response.json();
-            if (data.photos.length === 0) {
-                return null;
-            }
-
-            // Select a random image from results
-            const randomIndex = Math.floor(Math.random() * data.photos.length);
-            return data.photos[randomIndex].src.large;
-        } catch (error) {
-            elizaLogger.error("Error fetching image from Pexels:", error);
-            return null;
-        }
-    }
-
-    private async generateImageFromOpenAI(prompt: string): Promise<string | null> {
-        const OPENAI_API_KEY = this.runtime.getSetting("OPENAI_API_KEY");
-        if (!OPENAI_API_KEY) {
-            elizaLogger.error("OPENAI_API_KEY is not defined");
-            return null;
-        }
-
-        try {
-            const openai = new OpenAI({
-                apiKey: OPENAI_API_KEY,
-            });
-
-            const response = await openai.images.generate({
-                model: this.IMAGE_GENERATION_CONFIG.openai.model,
-                prompt: prompt,
-                size: this.IMAGE_GENERATION_CONFIG.openai.size,
-                quality: this.IMAGE_GENERATION_CONFIG.openai.quality,
-                n: this.IMAGE_GENERATION_CONFIG.openai.n
-            });
-
-            if (!response.data || response.data.length === 0) {
-                throw new Error("No image generated by OpenAI");
-            }
-
-            const imageData = response.data[0];
-            const imageUrl = 'url' in imageData ? imageData.url : imageData.b64_json;
-            if (!imageUrl || typeof imageUrl !== 'string') {
-                throw new Error("No valid image URL or base64 data returned by OpenAI");
-            }
-
-            return imageUrl;
-        } catch (error) {
-            elizaLogger.error("Error generating image with OpenAI:", error);
-            return null;
-        }
-    }
-
-    private async generateImageFromTogether(prompt: string): Promise<string | null> {
-        const TOGETHER_API_KEY = this.runtime.getSetting("TOGETHER_API_KEY");
-        if (!TOGETHER_API_KEY) {
-            elizaLogger.error("TOGETHER_API_KEY is not defined");
-            return null;
-        }
-
-        try {
-            const together = new Together({
-                apiKey: TOGETHER_API_KEY,
-            });
-
-            const response = await together.images.create({
-                prompt: prompt,
-                model: this.IMAGE_GENERATION_CONFIG.together.model,
-                steps: this.IMAGE_GENERATION_CONFIG.together.steps,
-                width: this.IMAGE_GENERATION_CONFIG.together.width,
-                height: this.IMAGE_GENERATION_CONFIG.together.height
-            });
-
-            if (!response || !response.data || response.data.length === 0) {
-                throw new Error("No image generated by Together AI");
-            }
-
-            const imageUrl = 'url' in response.data[0] ? response.data[0].url : response.data[0].b64_json;
-            if (!imageUrl) {
-                throw new Error("No image URL returned by Together AI");
-            }
-
-            // Ensure we have a string URL, otherwise return null
-            return typeof imageUrl === 'string' ? imageUrl : null;
-        } catch (error) {
-            elizaLogger.error("Error generating image with Together:", error);
-            return null;
-        }
-    }
-
-    async generateImageForTweet(tweetText: string): Promise<string | null> {
-        const imagePrompt = await generateText({
-            runtime: this.runtime,
-            context: `Given this tweet, create a concise and creative prompt for generating a realistic image that captures its mood, theme, and key details. Avoid requesting text or watermarks. Tweet: ${tweetText}`,
-            modelClass: ModelClass.MEDIUM,
-            stop: ["\n"]
-        });
-
-        if (!imagePrompt) {
-            elizaLogger.error("Failed to generate image prompt");
-            return null;
-        }
-
-        // Try Pexels first
-        let imageUrl = await this.generateImageFromPexels(imagePrompt);
-        if (imageUrl) {
-            return imageUrl;
-        }
-
-        // Try OpenAI as second option
-        imageUrl = await this.generateImageFromOpenAI(imagePrompt);
-        if (imageUrl) {
-            return imageUrl;
-        }
-
-        // Try Together AI as final fallback
-        imageUrl = await this.generateImageFromTogether(imagePrompt);
-        return imageUrl;
-    }
-
-    // Define arrays for tracking notable personalities and safe accounts to tag
-    private readonly NOTABLE_PERSONALITIES = [
-        { handle: "elonmusk", name: "Elon Musk", categories: ["tech", "energy"] },
-        { handle: "AOC", name: "Alexandria Ocasio-Cortez", categories: ["politics", "climate"] },
-        { handle: "GretaThunberg", name: "Greta Thunberg", categories: ["climate", "activism"] },
-        { handle: "JoeBiden", name: "Joe Biden", categories: ["politics"] },
-        { handle: "BillGates", name: "Bill Gates", categories: ["tech", "philanthropy"] },
-        { handle: "KimKardashian", name: "Kim Kardashian", categories: ["celebrity"] },
-        { handle: "Larry_Fink", name: "Larry Fink", categories: ["finance"] },
-        { handle: "GavinNewsom", name: "Gavin Newsom", categories: ["politics"] },
-        { handle: "algore", name: "Al Gore", categories: ["politics", "climate"] },
-        { handle: "taylorswift13", name: "Taylor Swift", categories: ["celebrity"] },
-        { handle: "JaneFonda", name: "Jane Fonda", categories: ["celebrity", "activism"] },
-        { handle: "NaomiAKlein", name: "Naomi Klein", categories: ["author", "climate"] },
-        { handle: "JohnKerry", name: "John Kerry", categories: ["politics", "climate"] },
-        { handle: "GeorgeMonbiot", name: "George Monbiot", categories: ["journalist", "climate"] },
-        { handle: "JoeManchin", name: "Joe Manchin", categories: ["politics"] }
-    ];
-
-    // SAFE accounts that we can actually tag in tweets
-    private readonly SAFE_ACCOUNTS_TO_TAG = [
-        "CarbonSustainAi",
-        "pbryzek",
-        "CarbonTruth"
-    ];
+    private raiinmakerService: any | null = null;
+    private approvalProvider: string;
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
+        elizaLogger.debug("🔍 TwitterPostClient constructor start");
         this.client = client;
         this.runtime = runtime;
         this.twitterUsername = this.client.twitterConfig.TWITTER_USERNAME;
         this.isDryRun = this.client.twitterConfig.TWITTER_DRY_RUN;
-
+        // Explicit debug for approval provider
+        const rawApprovalProvider = process.env.TWITTER_APPROVAL_PROVIDER;
+        elizaLogger.debug(`🔍 Raw approval provider from settings: "${rawApprovalProvider}"`);
+        
+        this.approvalProvider = rawApprovalProvider || "RAIINMAKER";
+        elizaLogger.debug(`🔍 Final approval provider set to: "${this.approvalProvider}"`);
+        
         // Log configuration on initialization
         elizaLogger.log("Twitter Client Configuration:");
         elizaLogger.log(`- Username: ${this.twitterUsername}`);
-        elizaLogger.log(
-            `- Dry Run Mode: ${this.isDryRun ? "enabled" : "disabled"}`
-        );
-
-        elizaLogger.log(
-            `- Enable Post: ${this.client.twitterConfig.ENABLE_TWITTER_POST_GENERATION ? "enabled" : "disabled"}`
-        );
-
-        elizaLogger.log(
-            `- Post Interval: ${this.client.twitterConfig.POST_INTERVAL_MIN}-${this.client.twitterConfig.POST_INTERVAL_MAX} minutes`
-        );
-        elizaLogger.log(
-            `- Action Processing: ${
-                this.client.twitterConfig.ENABLE_ACTION_PROCESSING
-                    ? "enabled"
-                    : "disabled"
-            }`
-        );
-        elizaLogger.log(
-            `- Action Interval: ${this.client.twitterConfig.ACTION_INTERVAL} minutes`
-        );
-        elizaLogger.log(
-            `- Post Immediately: ${
-                this.client.twitterConfig.POST_IMMEDIATELY
-                    ? "enabled"
-                    : "disabled"
-            }`
-        );
-        elizaLogger.log(
-            `- Search Enabled: ${
-                this.client.twitterConfig.TWITTER_SEARCH_ENABLE
-                    ? "enabled"
-                    : "disabled"
-            }`
-        );
-
+        elizaLogger.log(`- Dry Run Mode: ${this.isDryRun ? "enabled" : "disabled"}`);
+        elizaLogger.log(`- Enable Post: ${this.client.twitterConfig.ENABLE_TWITTER_POST_GENERATION ? "enabled" : "disabled"}`);
+        elizaLogger.log(`- Post Interval: ${this.client.twitterConfig.POST_INTERVAL_MIN}-${this.client.twitterConfig.POST_INTERVAL_MAX} minutes`);
+        elizaLogger.log(`- Action Processing: ${this.client.twitterConfig.ENABLE_ACTION_PROCESSING ? "enabled" : "disabled"}`);
+        elizaLogger.log(`- Action Interval: ${this.client.twitterConfig.ACTION_INTERVAL} minutes`);
+        elizaLogger.log(`- Post Immediately: ${this.client.twitterConfig.POST_IMMEDIATELY ? "enabled" : "disabled"}`);
+        elizaLogger.log(`- Search Enabled: ${this.client.twitterConfig.TWITTER_SEARCH_ENABLE ? "enabled" : "disabled"}`);
+        elizaLogger.log(`- Approval Provider: ${this.approvalProvider}`);
+    
         const targetUsers = this.client.twitterConfig.TWITTER_TARGET_USERS;
         if (targetUsers) {
             elizaLogger.log(`- Target Users: ${targetUsers}`);
         }
-
+    
         if (this.isDryRun) {
-            elizaLogger.log(
-                "Twitter client initialized in dry run mode - no actual tweets should be posted"
-            );
+            elizaLogger.log("Twitter client initialized in dry run mode - no actual tweets will be posted");
         }
-
-        // Initialize Discord webhook
-        const approvalRequired: boolean =
-            this.runtime
-                .getSetting("TWITTER_APPROVAL_ENABLED")
-                ?.toLocaleLowerCase() === "true";
+    
+        // Initialize verification system
+        const approvalEnabledSetting = this.runtime.getSetting("TWITTER_APPROVAL_ENABLED");
+        elizaLogger.debug(`🔍 TWITTER_APPROVAL_ENABLED setting: "${approvalEnabledSetting}"`);
+        
+        const approvalRequired: boolean = approvalEnabledSetting?.toLowerCase() === "true";
+        elizaLogger.debug(`🔍 Approval required: ${approvalRequired}`);
+        
         if (approvalRequired) {
-            const discordToken = this.runtime.getSetting(
-                "TWITTER_APPROVAL_DISCORD_BOT_TOKEN"
-            );
-            const approvalChannelId = this.runtime.getSetting(
-                "TWITTER_APPROVAL_DISCORD_CHANNEL_ID"
-            );
-
-            const APPROVAL_CHECK_INTERVAL =
-                Number.parseInt(
-                    this.runtime.getSetting("TWITTER_APPROVAL_CHECK_INTERVAL")
-                ) || 5 * 60 * 1000; // 5 minutes
-
-            this.approvalCheckInterval = APPROVAL_CHECK_INTERVAL;
-
-            if (!discordToken || !approvalChannelId) {
-                throw new Error(
-                    "TWITTER_APPROVAL_DISCORD_BOT_TOKEN and TWITTER_APPROVAL_DISCORD_CHANNEL_ID are required for approval workflow"
-                );
-            }
-
+            elizaLogger.debug(`🔍 Setting this.approvalRequired = true`);
             this.approvalRequired = true;
-            this.discordApprovalChannelId = approvalChannelId;
+            
+            // Parse interval setting with fallback to 5 minutes (300000ms)
+            const approvalCheckIntervalSetting = this.runtime.getSetting("TWITTER_APPROVAL_CHECK_INTERVAL");
+            const APPROVAL_CHECK_INTERVAL = approvalCheckIntervalSetting 
+                ? Number.parseInt(approvalCheckIntervalSetting) * 1000  // Convert seconds to milliseconds
+                : 5 * 60 * 1000; // 5 minutes default
+            
+            this.approvalCheckInterval = APPROVAL_CHECK_INTERVAL;
+            elizaLogger.log(`Twitter approval enabled using ${this.approvalProvider} verification with ${this.approvalCheckInterval/1000}s check interval`);
 
-            // Set up Discord client event handlers
-            this.setupDiscordClient();
+            elizaLogger.debug(`🔍 Checking provider - current provider: "${this.approvalProvider}"`);
+            
+            // Initialize only what's needed based on the provider
+            if (this.approvalProvider === "RAIINMAKER") {
+                elizaLogger.debug(`🔍 Entering Raiinmaker setup branch`);
+                // Check if Raiinmaker plugin is available
+                const raiinmakerEnabled = this.runtime.actions.some(
+                    action => action.name === "VERIFY_GENERATION_CONTENT"
+                );
+                
+                elizaLogger.debug(`🔍 Raiinmaker plugin available: ${raiinmakerEnabled}`);
+                
+                if (!raiinmakerEnabled) {
+                    elizaLogger.warn("Twitter approval is set to use Raiinmaker but the plugin is not available");
+                    elizaLogger.debug(`🔍 Setting this.approvalRequired = false due to missing Raiinmaker plugin`);
+                    this.approvalRequired = false;
+                } else {
+                    // Skip Discord setup completely for Raiinmaker provider
+                    elizaLogger.debug(`🔍 Skipping Discord setup for Raiinmaker provider`);
+                    this.discordApprovalChannelId = "";
+                    this.discordClientForApproval = null;
+                }
+            } else if (this.approvalProvider === "DISCORD") {
+                elizaLogger.debug(`🔍 Entering Discord setup branch`);
+                // Initialize Discord client
+                const discordToken = this.runtime.getSetting("TWITTER_APPROVAL_DISCORD_BOT_TOKEN");
+                const channelId = this.runtime.getSetting("TWITTER_APPROVAL_DISCORD_CHANNEL_ID");
+                
+                
+                if (!discordToken || !channelId) {
+                    elizaLogger.warn("Twitter approval is set to use Discord but credentials are missing");
+                    elizaLogger.debug(`🔍 Setting this.approvalRequired = false due to missing Discord credentials`);
+                    this.approvalRequired = false;
+                } else {
+                    elizaLogger.debug(`🔍 Setting Discord approval channel ID and initializing Discord client`);
+                    this.discordApprovalChannelId = channelId;
+                    elizaLogger.debug(`🔍 About to call setupDiscordClient()`);
+                    this.setupDiscordClient();
+                    elizaLogger.log("Discord approval client initialized");
+                }
+                
+                // Skip Raiinmaker setup for Discord provider
+                elizaLogger.debug(`🔍 Skipping Raiinmaker setup for Discord provider`);
+                this.raiinmakerService = null;
+            } else {
+                elizaLogger.debug(`🔍 Unknown approval provider: "${this.approvalProvider}"`);
+            }
+        } else {
+            elizaLogger.debug(`🔍 Twitter approval disabled by configuration`);
         }
+        
+        elizaLogger.debug(`🔍 TwitterPostClient constructor complete. Final approval provider: "${this.approvalProvider}", approval required: ${this.approvalRequired}`);
     }
 
     private setupDiscordClient() {
-        this.discordClientForApproval = new Client({
-            intents: [
-                GatewayIntentBits.Guilds,
-                GatewayIntentBits.GuildMessages,
-                GatewayIntentBits.MessageContent,
-                GatewayIntentBits.GuildMessageReactions,
-            ],
-            partials: [Partials.Channel, Partials.Message, Partials.Reaction],
-        });
-        this.discordClientForApproval.once(
-            Events.ClientReady,
-            (readyClient) => {
-                elizaLogger.log(
-                    `Discord bot is ready as ${readyClient.user.tag}!`
-                );
-
-                // Generate invite link with required permissions
-                const invite = `https://discord.com/api/oauth2/authorize?client_id=${readyClient.user.id}&permissions=274877991936&scope=bot`;
-                // 274877991936 includes permissions for:
-                // - Send Messages
-                // - Read Messages/View Channels
-                // - Read Message History
-
-                elizaLogger.log(
-                    `Use this link to properly invite the Twitter Post Approval Discord bot: ${invite}`
-                );
+        try {
+            // Check if required environment variables are set
+            const token = this.runtime.getSetting("TWITTER_APPROVAL_DISCORD_BOT_TOKEN");
+            this.discordApprovalChannelId = this.runtime.getSetting("TWITTER_APPROVAL_DISCORD_CHANNEL_ID");
+            
+            if (!token || !this.discordApprovalChannelId) {
+                elizaLogger.error("Missing required Discord environment variables for Twitter approval");
+                this.discordClientForApproval = null;
+                return;
             }
-        );
-        
+            
+            // Create Discord client
+            this.discordClientForApproval = new Client({
+                intents: [
+                    GatewayIntentBits.Guilds,
+                    GatewayIntentBits.GuildMessages,
+                    GatewayIntentBits.MessageContent,
+                    GatewayIntentBits.GuildMessageReactions,
+                ],
+                partials: [Partials.Channel, Partials.Message, Partials.Reaction],
+            });
+            
+            this.discordClientForApproval.once(
+                Events.ClientReady,
+                (readyClient) => {
+                    elizaLogger.log(
+                        `Discord bot is ready as ${readyClient.user.tag}!`
+                    );
+                    
+                    // Generate invite link with required permissions
+                    const invite = `https://discord.com/api/oauth2/authorize?client_id=${readyClient.user.id}&permissions=274877991936&scope=bot`;
+                    // 274877991936 includes permissions for:
+                    // - Send Messages
+                    // - Read Messages/View Channels
+                    // - Read Message History
+
+                    elizaLogger.log(
+                        `Use this link to properly invite the Twitter Post Approval Discord bot: ${invite}`
+                    );
+                }
+            );
+            
+            // Login to Discord with error handling
+            this.discordClientForApproval.login(token).catch(error => {
+                elizaLogger.error("Error logging in to Discord:", error);
+                this.discordClientForApproval = null;
+            });
+        } catch (error) {
+            elizaLogger.error("Exception setting up Discord client:", error);
+            this.discordClientForApproval = null;
+        }
     }
 
-    async start() {
-        if (!this.client.profile) {
-            await this.client.init();
+    /**
+     * Sends a tweet for verification through the Raiinmaker system
+     * 
+     * @param tweetTextForPosting The tweet text to be verified
+     * @param roomId The ID of the room associated with this tweet
+     * @param rawTweetContent The raw content before processing
+     * @returns The task ID of the verification task or null if creation failed
+     */
+    private async sendForRaiinmakerVerification(
+        tweetTextForPosting: string,
+        roomId: UUID,
+        rawTweetContent: string
+    ): Promise<string | null> {
+        try {
+            // First, explicitly check the provider and ensure Discord client is null for safety
+            if (this.approvalProvider === "RAIINMAKER") {
+                this.discordClientForApproval = null;
+            }
+            
+            elizaLogger.log(`Sending tweet for Raiinmaker verification: "${tweetTextForPosting.substring(0, 50)}${tweetTextForPosting.length > 50 ? '...' : ''}"`);
+            
+            // Create a fallback room ID that's stable and reusable
+            const verificationRoomId = stringToUuid("twitter_verification_room");
+            
+            // Try to use the provided room ID first
+            try {
+                await this.runtime.ensureRoomExists(roomId);
+                await this.runtime.ensureParticipantInRoom(this.runtime.agentId, roomId);
+            } catch (roomError) {
+                elizaLogger.error("Failed to create original room for tweet verification:", roomError);
+                
+                // Use the fallback room ID instead
+                try {
+                    await this.runtime.ensureRoomExists(verificationRoomId);
+                    await this.runtime.ensureParticipantInRoom(this.runtime.agentId, verificationRoomId);
+                    // Update roomId to the fallback one that we know exists
+                    roomId = verificationRoomId;
+                } catch (fallbackError) {
+                    elizaLogger.error("Failed to create fallback room for tweet verification:", fallbackError);
+                    // If we can't create a room at all, we shouldn't proceed with verification
+                    return null;
+                }
+            }
+            
+            // Create a verification task using the Raiinmaker plugin
+            const verificationOptions = {
+                subject: tweetTextForPosting,
+                name: `Tweet Verification from @${this.twitterUsername}`,
+                consensusVotes: 3,
+                question: "Is this content appropriate for posting on Twitter?",
+                roomId: roomId.toString() // Pass the roomId to the action
+            };
+            
+            try {
+                // Create a memory object for the action
+                let verificationResult: any = null;
+                const actionMemory: Memory = {
+                    id: uuidv4() as `${string}-${string}-${string}-${string}-${string}`,
+                    userId: this.runtime.agentId,
+                    agentId: this.runtime.agentId,
+                    roomId: roomId,
+                    content: {
+                        type: 'text',
+                        text: `Verify this content: "${tweetTextForPosting}"`,  // Include in text with quotes
+                        action: 'VERIFY_GENERATION_CONTENT',
+                        options: {
+                            content: tweetTextForPosting,  // Also include in options
+                            name: `Tweet Verification from @${this.twitterUsername}`,
+                            consensusVotes: 3,
+                            question: "Is this content appropriate for posting on Twitter?",
+                            roomId: roomId.toString()
+                        }
+                    }
+                };
+
+                // Process the action using runtime.processActions
+                await this.runtime.processActions(
+                    actionMemory,
+                    [actionMemory],
+                    undefined,
+                    async (result) => {
+                        if (result) {
+                            verificationResult = result;
+                        }
+                        return [actionMemory];
+                    }
+                );
+                
+                // Extract taskId from verificationResult.text if it's not at the top level
+                let taskId: string | null = null;
+                
+                if (verificationResult?.taskId) {
+                    // If it's available at the top level, use that
+                    taskId = verificationResult.taskId;
+                } else if (verificationResult?.text) {
+                    // Try to extract taskId from the text field using regex
+                    const taskIdMatch = verificationResult.text.match(/Task ID: ([a-f0-9-]{36})/i);
+                    if (taskIdMatch && taskIdMatch[1]) {
+                        taskId = taskIdMatch[1];
+                    }
+                }
+                
+                if (!taskId) {
+                    elizaLogger.error("Failed to create verification task: Invalid response from Raiinmaker plugin");
+                    
+                    // Fallback: If verification fails but we have configured the system to post directly,
+                    // skip verification and post immediately
+                    if (this.client.twitterConfig.POST_IMMEDIATELY) {
+                        elizaLogger.warn("Verification failed, but POST_IMMEDIATELY is enabled - posting tweet directly");
+                        
+                        // Post the tweet directly
+                        await this.postTweet(
+                            this.runtime,
+                            this.client,
+                            tweetTextForPosting,
+                            roomId,
+                            rawTweetContent,
+                            this.twitterUsername
+                        );
+                        
+                        return "direct-posted"; // Special return value to indicate we posted directly
+                    }
+                    
+                    return null;
+                }
+                
+                elizaLogger.log(`Successfully created verification task with ID: ${taskId}`);
+                
+                // Store the pending tweet with the taskId
+                const pendingTweetsKey = `twitter/${this.client.profile.username}/pendingTweets`;
+                const currentPendingTweets = (await this.runtime.cacheManager.get<PendingTweet[]>(pendingTweetsKey)) || [];
+                
+                // Add new pending tweet with Raiinmaker taskId
+                currentPendingTweets.push({
+                    tweetTextForPosting,
+                    roomId,
+                    rawTweetContent,
+                    taskId: taskId,
+                    timestamp: Date.now()
+                });
+                
+                // Store updated array
+                await this.runtime.cacheManager.set(pendingTweetsKey, currentPendingTweets);
+                
+                return taskId;
+            } catch (actionError) {
+                elizaLogger.error("Error executing VERIFY_GENERATION_CONTENT action:", actionError);
+                
+                // Fallback: If verification fails but we have configured the system to post directly,
+                // skip verification and post immediately
+                if (this.client.twitterConfig.POST_IMMEDIATELY) {
+                    elizaLogger.warn("Verification failed, but POST_IMMEDIATELY is enabled - posting tweet directly");
+                    
+                    // Post the tweet directly
+                    await this.postTweet(
+                        this.runtime,
+                        this.client,
+                        tweetTextForPosting,
+                        roomId,
+                        rawTweetContent,
+                        this.twitterUsername
+                    );
+                    
+                    return "direct-posted"; // Special return value to indicate we posted directly
+                }
+                
+                return null;
+            }
+        } catch (error) {
+            elizaLogger.error("Error sending tweet for Raiinmaker verification:", error);
+            
+            // Fallback: If verification completely fails but we have configured the system to post directly,
+            // skip verification and post immediately
+            if (this.client.twitterConfig.POST_IMMEDIATELY) {
+                elizaLogger.warn("Verification process failed, but POST_IMMEDIATELY is enabled - posting tweet directly");
+                
+                try {
+                    // Post the tweet directly
+                    await this.postTweet(
+                        this.runtime,
+                        this.client,
+                        tweetTextForPosting,
+                        roomId,
+                        rawTweetContent,
+                        this.twitterUsername
+                    );
+                    
+                    return "direct-posted"; // Special return value to indicate we posted directly
+                } catch (postError) {
+                    elizaLogger.error("Failed to post tweet in fallback mode:", postError);
+                    return null;
+                }
+            }
+            
+            return null;
         }
+    }
+    
+    
+    /**
+     * Checks the verification status of a task in the Raiinmaker system
+     * 
+     * @param taskId The ID of the verification task
+     * @returns The approval status of the task
+     */
+    private async checkRaiinmakerVerificationStatus(taskId: string): Promise<PendingTweetApprovalStatus> {
+        try {
+            if (this.approvalProvider !== "RAIINMAKER") {
+                return "PENDING";
+            }
+            
+            elizaLogger.log(`Checking verification status for task ID: ${taskId}`);
+            
+            try {
+                let verificationStatus: any = null;
+                
+                const checkActionMemory: Memory = {
+                    id: uuidv4() as `${string}-${string}-${string}-${string}-${string}`,
+                    userId: this.runtime.agentId,
+                    agentId: this.runtime.agentId,
+                    roomId: stringToUuid("verification_status_check"),
+                    content: {
+                        type: 'text',
+                        text: `Check verification status for task: "${taskId}"`,
+                        action: 'CHECK_VERIFICATION_STATUS',
+                        options: { taskId }
+                    }
+                };
 
-        const generateNewTweetLoop = async () => {
-            const lastPost = await this.runtime.cacheManager.get<{
-                timestamp: number;
-            }>("twitter/" + this.twitterUsername + "/lastPost");
+                await this.runtime.processActions(
+                    checkActionMemory,
+                    [checkActionMemory],
+                    undefined,
+                    async (result) => {
+                        verificationStatus = result;
+                        return [checkActionMemory];
+                    }
+                );
+                
+                if (!verificationStatus) {
+                    return "PENDING";
+                }
+                
+                // Parse the task status
+                const status = typeof verificationStatus.status === 'string' 
+                    ? verificationStatus.status.toLowerCase() 
+                    : null;
+                    
+                const answer = typeof verificationStatus.answer === 'string'
+                    ? verificationStatus.answer.toLowerCase()
+                    : null;
+                
+                // Check for completed and approved
+                if (status === 'completed') {
+                    if (answer === 'true' || answer === 'yes') {
+                        return "APPROVED";
+                    } else {
+                        return "REJECTED";
+                    }
+                }
+                
+                return "PENDING";
+                
+            } catch (error: any) {
+                if (error?.status === 404) {
+                    return "REJECTED";
+                }
+                throw error;
+            }
+        } catch (error) {
+            elizaLogger.error(`Error checking verification status for task ${taskId}:`, error);
+            return "PENDING";
+        }
+    }
 
-            const lastPostTimestamp = lastPost?.timestamp ?? 0;
-            const minMinutes = this.client.twitterConfig.POST_INTERVAL_MIN;
-            const maxMinutes = this.client.twitterConfig.POST_INTERVAL_MAX;
-            const randomMinutes =
-                Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) +
-                minMinutes;
-            const delay = randomMinutes * 60 * 1000;
+    /**
+     * Sends a tweet for verification through the Discord approval system
+     * 
+     * @param tweetTextForPosting The tweet text to be verified
+     * @param roomId The ID of the room associated with this tweet
+     * @param rawTweetContent The raw content before processing
+     * @returns The message ID or null if sending failed
+     */
+    private async sendForDiscordApproval(
+        tweetTextForPosting: string,
+        roomId: UUID,
+        rawTweetContent: string
+    ): Promise<string | null> {
+        try {
+            elizaLogger.log(`Sending tweet for Discord approval: "${tweetTextForPosting.substring(0, 50)}${tweetTextForPosting.length > 50 ? '...' : ''}"`);
+            
+            // Check if Discord client is initialized
+            if (!this.discordClientForApproval || !this.discordApprovalChannelId) {
+                elizaLogger.error("Discord client or channel ID not configured for approval");
+                
+                // If Discord approval fails but POST_IMMEDIATELY is enabled, post directly
+                if (this.client.twitterConfig.POST_IMMEDIATELY) {
+                    elizaLogger.warn("Discord approval failed, but POST_IMMEDIATELY is enabled - posting tweet directly");
+                    
+                    await this.postTweet(
+                        this.runtime,
+                        this.client,
+                        tweetTextForPosting,
+                        roomId,
+                        rawTweetContent,
+                        this.twitterUsername
+                    );
+                    
+                    return "direct-posted";
+                }
+                
+                return null;
+            }
+            
+            // Create embed for Discord message
+            const embed = {
+                title: "New Tweet Pending Approval",
+                description: tweetTextForPosting,
+                fields: [
+                    {
+                        name: "Character",
+                        value: this.client.profile.username,
+                        inline: true,
+                    },
+                    {
+                        name: "Length",
+                        value: tweetTextForPosting.length.toString(),
+                        inline: true,
+                    },
+                ],
+                footer: {
+                    text: "React with 👍 to approve or ❌ to reject. This will expire after 24 hours if no response received.",
+                },
+                timestamp: new Date().toISOString(),
+                color: 0x1DA1F2, // Twitter blue color
+            };
+            
+            // Fetch the channel
+            try {
+                const channel = await this.discordClientForApproval.channels.fetch(this.discordApprovalChannelId);
+                
+                if (!channel || !(channel instanceof TextChannel)) {
+                    throw new Error(`Invalid Discord channel: ${this.discordApprovalChannelId}`);
+                }
+                
+                // Send the approval message
+                const message = await channel.send({ embeds: [embed] });
+                
+                // Add the approval reactions for easy clicking
+                await message.react('👍');
+                await message.react('❌');
+                
+                // Store the pending tweet
+                const pendingTweetsKey = `twitter/${this.client.profile.username}/pendingTweets`;
+                const currentPendingTweets = (await this.runtime.cacheManager.get<PendingTweet[]>(pendingTweetsKey)) || [];
+                
+                // Add new pending tweet
+                currentPendingTweets.push({
+                    tweetTextForPosting,
+                    roomId,
+                    rawTweetContent,
+                    taskId: message.id, // Use Discord message ID as task ID
+                    timestamp: Date.now()
+                });
+                
+                // Store updated array
+                await this.runtime.cacheManager.set(pendingTweetsKey, currentPendingTweets);
+                
+                elizaLogger.success(`Successfully sent tweet for Discord approval with message ID: ${message.id}`);
+                return message.id;
+                
+            } catch (error) {
+                elizaLogger.error("Error sending Discord approval message:", error);
+                
+                // If Discord approval fails but POST_IMMEDIATELY is enabled, post directly
+                if (this.client.twitterConfig.POST_IMMEDIATELY) {
+                    elizaLogger.warn("Discord approval failed, but POST_IMMEDIATELY is enabled - posting tweet directly");
+                    
+                    await this.postTweet(
+                        this.runtime,
+                        this.client,
+                        tweetTextForPosting,
+                        roomId,
+                        rawTweetContent,
+                        this.twitterUsername
+                    );
+                    
+                    return "direct-posted";
+                }
+                
+                return null;
+            }
+        } catch (error) {
+            elizaLogger.error("Error in Discord approval process:", error);
+            
+            // If verification completely fails but we have configured the system to post directly,
+            // skip verification and post immediately
+            if (this.client.twitterConfig.POST_IMMEDIATELY) {
+                elizaLogger.warn("Discord approval process failed, but POST_IMMEDIATELY is enabled - posting tweet directly");
+                
+                try {
+                    // Post the tweet directly
+                    await this.postTweet(
+                        this.runtime,
+                        this.client,
+                        tweetTextForPosting,
+                        roomId,
+                        rawTweetContent,
+                        this.twitterUsername
+                    );
+                    
+                    return "direct-posted"; // Special return value to indicate we posted directly
+                } catch (postError) {
+                    elizaLogger.error("Failed to post tweet in fallback mode:", postError);
+                    return null;
+                }
+            }
+            
+            return null;
+        }
+    }
 
-            if (Date.now() > lastPostTimestamp + delay) {
+    /**
+     * Starts the Twitter client and sets up all necessary loops and processes
+     */
+    async start() {
+        try {
+            // Force Discord client to null for RAIINMAKER provider
+            if (this.approvalProvider?.toUpperCase() === "RAIINMAKER") {
+                elizaLogger.debug(`🔍 Explicitly ensuring Discord client is null for RAIINMAKER provider during start()`);
+                this.discordClientForApproval = null;
+            }
+            
+            if (!this.client.profile) {
+                await this.client.init();
+            }
+
+            const generateNewTweetLoop = async () => {
+                const lastPost = await this.runtime.cacheManager.get<{
+                    timestamp: number;
+                }>("twitter/" + this.twitterUsername + "/lastPost");
+
+                const lastPostTimestamp = lastPost?.timestamp ?? 0;
+                const minMinutes = this.client.twitterConfig.POST_INTERVAL_MIN;
+                const maxMinutes = this.client.twitterConfig.POST_INTERVAL_MAX;
+                const randomMinutes =
+                    Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) +
+                    minMinutes;
+                const delay = randomMinutes * 60 * 1000;
+
+                if (Date.now() > lastPostTimestamp + delay) {
+                    await this.generateNewTweet();
+                }
+
+                setTimeout(() => {
+                    generateNewTweetLoop(); // Set up next iteration
+                }, delay);
+
+                elizaLogger.log(`Next tweet scheduled in ${randomMinutes} minutes`);
+            };
+
+            const processActionsLoop = async () => {
+                const actionInterval = this.client.twitterConfig.ACTION_INTERVAL; // Defaults to 5 minutes
+
+                while (!this.stopProcessingActions) {
+                    try {
+                        const results = await this.processTweetActions();
+                        if (results) {
+                            elizaLogger.log(`Processed ${results.length} tweets`);
+                            elizaLogger.log(
+                                `Next action processing scheduled in ${actionInterval} minutes`
+                            );
+                            // Wait for the full interval before next processing
+                            await new Promise(
+                                (resolve) =>
+                                    setTimeout(resolve, actionInterval * 60 * 1000) // now in minutes
+                            );
+                        }
+                    } catch (error) {
+                        elizaLogger.error(
+                            "Error in action processing loop:",
+                            error
+                        );
+                        // Add exponential backoff on error
+                        await new Promise((resolve) => setTimeout(resolve, 30000)); // Wait 30s on error
+                    }
+                }
+            };
+
+            if (this.client.twitterConfig.POST_IMMEDIATELY) {
                 await this.generateNewTweet();
             }
 
-            setTimeout(() => {
-                generateNewTweetLoop(); // Set up next iteration
-            }, delay);
+            if (this.client.twitterConfig.ENABLE_TWITTER_POST_GENERATION) {
+                generateNewTweetLoop();
+                elizaLogger.log("Tweet generation loop started");
+            }
 
-            elizaLogger.log(`Next tweet scheduled in ${randomMinutes} minutes`);
-        };
-
-        const processActionsLoop = async () => {
-            const actionInterval = this.client.twitterConfig.ACTION_INTERVAL; // Defaults to 5 minutes
-
-            while (!this.stopProcessingActions) {
-                try {
-                    const results = await this.processTweetActions();
-                    if (results) {
-                        elizaLogger.log(`Processed ${results.length} tweets`);
-                        elizaLogger.log(
-                            `Next action processing scheduled in ${actionInterval} minutes`
-                        );
-                        // Wait for the full interval before next processing
-                        await new Promise(
-                            (resolve) =>
-                                setTimeout(resolve, actionInterval * 60 * 1000) // now in minutes
-                        );
-                    }
-                } catch (error) {
+            if (this.client.twitterConfig.ENABLE_ACTION_PROCESSING) {
+                processActionsLoop().catch((error) => {
                     elizaLogger.error(
-                        "Error in action processing loop:",
+                        "Fatal error in process actions loop:",
                         error
                     );
-                    // Add exponential backoff on error
-                    await new Promise((resolve) => setTimeout(resolve, 30000)); // Wait 30s on error
-                }
+                });
             }
-        };
 
-        if (this.client.twitterConfig.POST_IMMEDIATELY) {
-            await this.generateNewTweet();
+            // Start the pending tweet check loop if approval is required
+            if (this.approvalRequired) {
+                await this.startVerificationPolling();
+            }
+        } catch (error) {
+            elizaLogger.error("Error starting Twitter client:", error);
         }
-
-        if (this.client.twitterConfig.ENABLE_TWITTER_POST_GENERATION) {
-            generateNewTweetLoop();
-            elizaLogger.log("Tweet generation loop started");
-        }
-
-        if (this.client.twitterConfig.ENABLE_ACTION_PROCESSING) {
-            processActionsLoop().catch((error) => {
-                elizaLogger.error(
-                    "Fatal error in process actions loop:",
-                    error
-                );
-            });
-        }
-
-        // Start the pending tweet check loop if enabled
-        if (this.approvalRequired) this.runPendingTweetCheckLoop();
     }
 
     private runPendingTweetCheckLoop() {
@@ -633,7 +827,7 @@ export class TwitterPostClient {
             photos: [],
             thread: [],
             urls: [],
-            videos: [],
+           videos: [],
         } as Tweet;
     }
 
@@ -659,9 +853,6 @@ export class TwitterPostClient {
         // Log the posted tweet
         elizaLogger.log(`Tweet posted:\n ${tweet.permanentUrl}`);
 
-        // Print collected tweet information
-        this.storeTweetInfo(tweet, rawTweetContent, runtime);
-
         // Ensure the room and participant exist
         await runtime.ensureRoomExists(roomId);
         await runtime.ensureParticipantInRoom(runtime.agentId, roomId);
@@ -671,113 +862,16 @@ export class TwitterPostClient {
             id: stringToUuid(tweet.id + "-" + runtime.agentId),
             userId: runtime.agentId,
             agentId: runtime.agentId,
+            roomId,
             content: {
                 text: rawTweetContent.trim(),
                 url: tweet.permanentUrl,
                 source: "twitter",
             },
-            roomId,
             embedding: getEmbeddingZeroVector(),
             createdAt: tweet.timestamp,
         });
     }
-
-    //FIXME: Add a method to handle the approval process for tweets
-    /**
-     * Collects and prints detailed tweet information including permalink, date/time, content, URLs, hashtags, and images
-     * Also stores the tweet record in the PostgreSQL database
-     * 
-     * @param tweet The Tweet object to print information for
-     * @param rawTweetContent The original raw content of the tweet
-     */
-    storeTweetInfo(tweet: Tweet, rawTweetContent: string, runtime: IAgentRuntime) {
-        const date = new Date(tweet.timestamp);
-        const formattedDate = date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-        const formattedTime = date.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        });
-
-        const divider = "=".repeat(50);
-        
-        let infoOutput = `\n${divider}\n`;
-        infoOutput += `TWEET INFORMATION:\n`;
-        infoOutput += `${tweet.id}`
-        infoOutput += `${divider}\n`;
-        infoOutput += `Permalink: ${tweet.permanentUrl}\n`;
-        infoOutput += `Date: ${formattedDate}\n`;
-        infoOutput += `Time: ${formattedTime}\n`;
-        infoOutput += `Content: ${tweet.text}\n`;
-        
-            // Try to extract hashtags from text using regex
-            const hashtagRegex = /#(\w+)/g;
-            const extractedHashtags = [];
-            let match;
-            while ((match = hashtagRegex.exec(tweet.text)) !== null) {
-                extractedHashtags.push(match[1]);
-            }
-            if (extractedHashtags.length > 0) {
-                infoOutput += `Hashtags: ${extractedHashtags.join(', ')}\n`;
-            }
-        
-        // Add photos/images if present
-        const imageArray = []
-        if (tweet.photos && tweet.photos.length > 0) {
-            infoOutput += `Images: \n  ${tweet.photos.map(photo => photo.url).join('\n  ')}\n`;
-            imageArray.push(...tweet.photos.map(photo => photo.url));
-        }
-        
-        infoOutput += `${divider}\n`;
-        
-        // Log the collected information
-        elizaLogger.info(infoOutput);
-        
-
-
-        const tweetDataPG: TweetData = {
-            sender: "carbonrant",
-            tweetData: {
-                tweetID: String(tweet.id),
-                date: String(formattedDate),
-                time: String(formattedTime),
-                tweetLnk: String(tweet.permanentUrl),
-                content: String(tweet.text),
-                hashtags: extractedHashtags,
-                imageUrl: imageArray,
-            }
-        };
-        const tweetSender = new TweetDataSender();
-        const truthtweet= tweetSender.getLatestTweet('carbontruth');
-        // elizaLogger.log(`Tweet Data: ${JSON.stringify(truthtweet)}`); 
-        elizaLogger.log(`Tweet Data: ${JSON.stringify(tweetDataPG)}`);
-
-        (async () => {
-            try {
-                const id = await tweetSender.sendTweetObject(tweetDataPG);
-              if (id !== null) {
-                elizaLogger.log(`Tweet inserted with DB ID: ${id}`);
-              } else {
-                elizaLogger.log('Tweet already exists or was not inserted.');
-              }
-            } catch (error) {
-                elizaLogger.error('Error inserting tweet:', String(error));
-            }
-          })();
-          
-        // Store the tweet in PostgreSQL database
-        // this.storeTweetInDatabase(tweet, formattedDate, formattedTime, runtime)
-        //     .catch(error => {
-        //         elizaLogger.error(`Failed to store tweet in database: ${error}`);
-        //     });
-    }
-
-
 
     async handleNoteTweet(
         client: ClientBase,
@@ -849,182 +943,12 @@ export class TwitterPostClient {
         roomId: UUID,
         rawTweetContent: string,
         twitterUsername: string,
-        mediaData?: MediaData[]
+        mediaData?: MediaData[],
+        image?: string,
+        imageContext?: string
     ) {
         try {
             elizaLogger.log(`Posting new tweet:\n`);
-
-            // Check if tweet already has a greeting
-            const greetingRegex = /^(good\s*(morning|afternoon|evening|night)|hey|hi|hello|morning|evening|afternoon)/i;
-            const hasGreeting = greetingRegex.test(tweetTextForPosting);
-
-            // If no greeting exists, maybe add a sassy one
-            if (!hasGreeting) {
-                const sassyGreeting = this.getTimeBasedSassyGreeting();
-                if (sassyGreeting) {
-                    tweetTextForPosting = sassyGreeting + tweetTextForPosting;
-                }
-            }
-
-            const containsLink = await TwitterPrePostHookHandler.tweetContainsUrl(
-                tweetTextForPosting
-            );
-
-            // if (!containsLink) {
-            //     tweetTextForPosting = await TwitterPrePostHookHandler.addFactReferenceToTweet(
-            //         runtime,
-            //         tweetTextForPosting,
-            //     );
-            // }
-
-            const time = Date.now();
-            const currentTime = new Date(time).toLocaleString("en-US", {
-                timeZone: "PST",
-            });
-            elizaLogger.log(`Current UTC time: ${currentTime as string}`);
-
-            const fixTweet = `Time: ${currentTime as string}
-Tweet: ${tweetTextForPosting}
-
-* Reformat this tweet with the following guidelines in mind:
-* 1. ALWAYS preserve any URLs or shortened links from tinyurl.com (e.g., https://tinyurl.com/xyz) exactly as they appear.
-* 2. REMOVE any other links that are not from tinyurl.com.
-* 3. Use a variety of natural formats:
-    - Sometimes write as one flowing sentence.
-    - Other times break it into parts, like:
-        Some part of the tweet.\n
-
-        Mid part of the tweet.\n
-
-        Final thought, link, or hashtags.
-* 4. Vary the total length of tweets — not all should be long. Some should be punchy and short, others more expressive.
-* 5. Optionally start with a casual greeting about 15% of the time based on current time.
-* 6. Limit the number of hashtags to a maximum of 2.
-* 7. Prefer turning relevant keywords already present in the tweet into hashtags, rather than adding new ones.
-* 8. Place hashtags naturally — either integrated into the sentence or grouped at the end (with proper spacing).
-* 9. Ensure links are easy to find — preferably near the end, but not strictly required.
-* 10. Keep the tweet's total character count under 280.
-* 11. Preserve the original meaning and core message of the tweet.
-* 12. Make the tone feel conversational and authentic — vary sentence style and rhythm from tweet to tweet.
-`;
-
-            elizaLogger.info("Fixing Tweet:\n" + (fixTweet as string));
-            
-            let fixedTweet = tweetTextForPosting;
-            try {
-                let retryCount = 0;
-                const maxRetries = 2; // Reduced from 3 to 2
-                let retryDelay = 1000; // Start with 1 second delay
-
-                while (retryCount <= maxRetries) {
-                    const response = await generateText({
-                        runtime: this.runtime,
-                        context: fixTweet,
-                        modelClass: ModelClass.MEDIUM,
-                        stop: ["\n"]
-                    });
-
-                    // Check if we got a valid response
-                    if (response && typeof response === 'string' && response.trim().length > 0) {
-                        elizaLogger.info("Fixed Tweet Response:\n" + response);
-                        fixedTweet = response.trim();
-                        break; // Exit loop if we got a valid response
-                    }
-
-                    // If no valid response, increment retry count and delay
-                    retryCount++;
-                    if (retryCount <= maxRetries) {
-                        elizaLogger.warn(`Empty or invalid response, attempt ${retryCount} of ${maxRetries}`);
-                        await new Promise(resolve => setTimeout(resolve, retryDelay));
-                        retryDelay *= 2; // Exponential backoff
-                    }
-                }
-
-                // If we exhausted retries, keep original tweet
-                if (retryCount > maxRetries) {
-                    elizaLogger.warn("Max retries reached, using original tweet text");
-                    fixedTweet = tweetTextForPosting;
-                }
-            } catch (error) {
-                elizaLogger.error("Error fixing tweet, using original:", error);
-                fixedTweet = tweetTextForPosting;
-            }
-
-            // Update the tweet text with fixed version
-            tweetTextForPosting = fixedTweet;
-
-            try {
-                const tweetInfo = {
-                    text: tweetTextForPosting,
-                    raw: rawTweetContent,
-                    username: twitterUsername,
-                    mediaData: mediaData
-                };
-
-                //FIXME: Add a check for the tweet length and truncate if necessary
-                // Perform tweet safety and popularity checks
-                const tweetChecker = new TweetChecker();
-                
-                try {
-                    // Check for tweet safety
-                    const isSafe = await tweetChecker.checkTweetSafety(tweetTextForPosting);
-                    elizaLogger.info(`Tweet safety check result: ${isSafe ? 'SAFE' : 'UNSAFE'}`);
-                    
-                    // If the tweet is not safe, regenerate it
-                    if (!isSafe) {
-                        elizaLogger.warn(`Tweet failed safety check - Regenerating safer content`);
-                        tweetTextForPosting = await TwitterPrePostHookHandler.regenerateTweetForSafety(
-                            runtime,
-                            tweetTextForPosting,
-                            client
-                        );
-                        // Update the tweet info with the new text
-                        tweetInfo.text = tweetTextForPosting;
-                    }
-                    
-                    // Check for tweet popularity
-                    const popularityResult = await tweetChecker.checkTweetPopularity(tweetTextForPosting);
-                    const { isPopular, score: popularityScore } = popularityResult;
-                    
-                    // If the tweet is not likely to be popular, regenerate it
-                    if (!isPopular && popularityScore < 10) {
-                        elizaLogger.warn(`Tweet might not be engaging enough - Regenerating for better engagement`);
-                        tweetTextForPosting = await TwitterPrePostHookHandler.regenerateTweetForPopularity(
-                            runtime,
-                            tweetTextForPosting,
-                            popularityScore,
-                            client
-                        );
-                        // Update the tweet info with the new text
-                        tweetInfo.text = tweetTextForPosting;
-                    }
-                    
-                    // Log combined result
-                    if (isSafe && isPopular) {
-                        elizaLogger.info(`Tweet passed both safety and popularity checks ✅`);
-                    } else if (!isSafe) {
-                        elizaLogger.warn(`Tweet failed safety check ❌ - Content has been regenerated`);
-                    } else if (!isPopular) {
-                        elizaLogger.warn(`Tweet might not be popular enough ⚠️ - Content has been improved`);
-                    }
-                } catch (checkError) {
-                    elizaLogger.error("Error during tweet safety/popularity checks:", checkError);
-                    // Continue with posting even if checks fail
-                }
-                
-                // Process the pre-post hook and get updated media data if any
-                const updatedMediaData = await TwitterPrePostHookHandler.processPrePostHook(runtime, tweetInfo);
-                if (updatedMediaData) {
-                    mediaData = updatedMediaData;
-                }
-                
-                // Ensure tweetInfo has the latest content for logging
-                tweetInfo.text = tweetTextForPosting;
-                
-            } catch (hookError) {
-                // Continue with posting even if hook fails
-                elizaLogger.error("Error in pre-post hook:", hookError);
-            }
 
             let result;
 
@@ -1049,16 +973,13 @@ Tweet: ${tweetTextForPosting}
                 client,
                 twitterUsername
             );
-            
-            // Update the tweet text to match the final version that was posted
-            tweet.text = tweetTextForPosting;
 
             await this.processAndCacheTweet(
                 runtime,
                 client,
                 tweet,
                 roomId,
-                tweetTextForPosting // Use the modified tweet text as the raw content
+                rawTweetContent
             );
         } catch (error) {
             elizaLogger.error("Error sending tweet:", error);
@@ -1066,7 +987,33 @@ Tweet: ${tweetTextForPosting}
     }
 
     /**
-     * Generates and posts a new tweet. If isDryRun is true, only logs what would have been posted.
+     * Sends a tweet for verification through the configured provider
+     */
+    private async sendForVerification(
+        tweetTextForPosting: string,
+        roomId: UUID,
+        rawTweetContent: string
+    ): Promise<string | null> {
+        // Force provider to uppercase for consistent comparison
+        const provider = this.approvalProvider.toUpperCase();
+        
+        // Add explicit safety measure - if we're using RAIINMAKER, nullify Discord
+        if (provider === "RAIINMAKER") {
+            this.discordClientForApproval = null;
+            return this.sendForRaiinmakerVerification(tweetTextForPosting, roomId, rawTweetContent);
+        } else if (provider === "DISCORD") {
+            // Only attempt Discord if it's explicitly selected
+            return this.sendForDiscordApproval(tweetTextForPosting, roomId, rawTweetContent);
+        } else {
+            // For any other provider, default to Raiinmaker for safety
+            elizaLogger.warn(`Unknown provider "${this.approvalProvider}", defaulting to Raiinmaker`);
+            this.discordClientForApproval = null;
+            return this.sendForRaiinmakerVerification(tweetTextForPosting, roomId, rawTweetContent);
+        }
+    }
+
+    /**
+     * Generates a new tweet, sends it for verification if required, or posts it directly
      */
     async generateNewTweet() {
         elizaLogger.log("Generating new tweet");
@@ -1106,8 +1053,6 @@ Tweet: ${tweetTextForPosting}
                     this.runtime.character.templates?.twitterPostTemplate ||
                     twitterPostTemplate,
             });
-
-            elizaLogger.debug("generate post prompt:\n" + context);
 
             const response = await generateText({
                 runtime: this.runtime,
@@ -1172,6 +1117,44 @@ Tweet: ${tweetTextForPosting}
             tweetTextForPosting = removeQuotes(
                 fixNewLines(tweetTextForPosting)
             );
+            
+            // Get recommended personality tags based on content
+            const recommendedTags = getRecommendedTags(tweetTextForPosting);
+            elizaLogger.log(`Recommended personality tags: ${recommendedTags.join(', ')}`);
+            
+            // Add personality tag if one is recommended
+            if (recommendedTags.length > 0 && !tweetTextForPosting.includes('@')) {
+                const tagToUse = recommendedTags[0];
+                elizaLogger.log(`Adding tag @${tagToUse} to tweet`);
+                
+                // Format the tag correctly
+                const formattedTag = formatHandle(tagToUse);
+                
+                // Append the tag to the tweet in a natural way
+                if (tweetTextForPosting.endsWith('.') || tweetTextForPosting.endsWith('!') || tweetTextForPosting.endsWith('?')) {
+                    // Add tag after end of sentence with a space
+                    tweetTextForPosting = `${tweetTextForPosting} ${formattedTag}`;
+                } else {
+                    // Add tag with period separator
+                    tweetTextForPosting = `${tweetTextForPosting}. ${formattedTag}`;
+                }
+            }
+
+            // Step: Generate image + context using hook
+            let image, imageContext;
+            try {
+                const result = await TwitterPrePostHookHandler.generateImageAndContext({
+                  topic: topics,
+                  post: { content: tweetTextForPosting },
+                  agent: this.runtime,
+                });
+                image = result.image;
+                imageContext = result.imageContext;
+            } catch (error) {
+                elizaLogger.warn("Failed to generate image for tweet, continuing without image:", error);
+                image = null;
+                imageContext = null;
+            }
 
             if (this.isDryRun) {
                 elizaLogger.info(
@@ -1182,28 +1165,36 @@ Tweet: ${tweetTextForPosting}
 
             try {
                 if (this.approvalRequired) {
-                    // Send for approval instead of posting directly
-                    elizaLogger.log(
-                        `Sending Tweet For Approval:\n ${tweetTextForPosting}`
-                    );
-                    await this.sendForApproval(
+                    // Send for verification using the configured provider
+                    elizaLogger.log(`Sending Tweet for ${this.approvalProvider} verification:\n ${tweetTextForPosting}`);
+                    
+                    const taskId = await this.sendForVerification(
                         tweetTextForPosting,
                         roomId,
                         rawTweetContent
                     );
-                    elizaLogger.log("Tweet sent for approval");
+                    
+                    if (taskId === "direct-posted") {
+                        elizaLogger.log("Tweet was posted directly due to verification fallback");
+                    } else if (taskId) {
+                        elizaLogger.log(`Tweet sent for verification with task ID: ${taskId}`);
+                    } else {
+                        elizaLogger.error("Failed to send tweet for verification");
+                    }
                 } else {
                     elizaLogger.log(
-                        `Posting new tweet:\n ${tweetTextForPosting}`
+                        `Posting new tweet directly (no approval required):\n ${tweetTextForPosting}`
                     );
-                    this.postTweet(
+                    await this.postTweet(
                         this.runtime,
                         this.client,
                         tweetTextForPosting,
                         roomId,
                         rawTweetContent,
                         this.twitterUsername,
-                        mediaData
+                        mediaData,
+                        image,
+                        imageContext
                     );
                 }
             } catch (error) {
@@ -1283,6 +1274,7 @@ Tweet: ${tweetTextForPosting}
 
         return truncateContent;
     }
+
 
     /**
      * Processes tweet actions (likes, retweets, quotes, replies). If isDryRun is true,
@@ -1792,8 +1784,6 @@ Tweet: ${tweetTextForPosting}
                 return;
             }
 
-            elizaLogger.debug("Final reply text to be sent:", replyText);
-
             let result;
 
             if (replyText.length > DEFAULT_MAX_TWEET_LENGTH) {
@@ -1827,76 +1817,29 @@ Tweet: ${tweetTextForPosting}
         }
     }
 
+    /**
+     * Stops all client processes
+     */
     async stop() {
         this.stopProcessingActions = true;
+        
+        // Disconnect Discord client if it was initialized
+        if (this.discordClientForApproval) {
+            elizaLogger.log("Disconnecting Discord client");
+            this.discordClientForApproval.destroy();
+        }
+        
+        elizaLogger.log("Twitter post client stopped");
     }
 
-    private async sendForApproval(
-        tweetTextForPosting: string,
-        roomId: UUID,
-        rawTweetContent: string
-    ): Promise<string | null> {
-        try {
-            const embed = {
-                title: "New Tweet Pending Approval",
-                description: tweetTextForPosting,
-                fields: [
-                    {
-                        name: "Character",
-                        value: this.client.profile.username,
-                        inline: true,
-                    },
-                    {
-                        name: "Length",
-                        value: tweetTextForPosting.length.toString(),
-                        inline: true,
-                    },
-                ],
-                footer: {
-                    text: "Reply with '👍' to post or '❌' to discard, This will automatically expire and remove after 24 hours if no response received",
-                },
-                timestamp: new Date().toISOString(),
-            };
-
-            const channel = await this.discordClientForApproval.channels.fetch(
-                this.discordApprovalChannelId
-            );
-
-            if (!channel || !(channel instanceof TextChannel)) {
-                throw new Error("Invalid approval channel");
-            }
-
-            const message = await channel.send({ embeds: [embed] });
-
-            // Store the pending tweet
-            const pendingTweetsKey = `twitter/${this.client.profile.username}/pendingTweet`;
-            const currentPendingTweets =
-                (await this.runtime.cacheManager.get<PendingTweet[]>(
-                    pendingTweetsKey
-                )) || [];
-            // Add new pending tweet
-            currentPendingTweets.push({
-                tweetTextForPosting,
-                roomId,
-                rawTweetContent,
-                discordMessageId: message.id,
-                channelId: this.discordApprovalChannelId,
-                timestamp: Date.now(),
-            });
-
-            // Store updated array
-            await this.runtime.cacheManager.set(
-                pendingTweetsKey,
-                currentPendingTweets
-            );
-
-            return message.id;
-        } catch (error) {
-            elizaLogger.error(
-                "Error Sending Twitter Post Approval Request:",
-                error
-            );
-            return null;
+    private async checkVerificationStatus(taskId: string): Promise<PendingTweetApprovalStatus> {
+        if (this.approvalProvider === "DISCORD") {
+            return this.checkApprovalStatus(taskId);
+        } else if (this.approvalProvider === "RAIINMAKER") {
+            return this.checkRaiinmakerVerificationStatus(taskId);
+        } else {
+            elizaLogger.warn(`Unknown provider "${this.approvalProvider}", defaulting to PENDING status`);
+            return "PENDING";
         }
     }
 
@@ -1904,12 +1847,20 @@ Tweet: ${tweetTextForPosting}
         discordMessageId: string
     ): Promise<PendingTweetApprovalStatus> {
         try {
+            // Guard to prevent Discord checks when not using Discord provider
+            if (this.approvalProvider !== "DISCORD") {
+                return "PENDING";
+            }
+            
             // Fetch message and its replies from Discord
+            if (!this.discordClientForApproval) {
+                elizaLogger.error("Discord client not initialized for approval check");
+                return "PENDING";
+            }
+            
             const channel = await this.discordClientForApproval.channels.fetch(
                 this.discordApprovalChannelId
             );
-
-            elizaLogger.log(`channel ${JSON.stringify(channel)}`);
 
             if (!(channel instanceof TextChannel)) {
                 elizaLogger.error("Invalid approval channel");
@@ -1931,244 +1882,184 @@ Tweet: ${tweetTextForPosting}
 
             // Check if the reaction exists and has reactions
             if (rejectReaction) {
-                const count = rejectReaction.count;
-                if (count > 0) {
+                const reactionCount = rejectReaction.count;
+                if (reactionCount > 1) { // More than just the bot's reaction
+                    elizaLogger.log(`Tweet rejected via Discord reaction`);
                     return "REJECTED";
                 }
             }
 
-            // Check if the reaction exists and has reactions
+            // Check thumbs up for approval
             if (thumbsUpReaction) {
-                // You might want to check for specific users who can approve
-                // For now, we'll return true if anyone used thumbs up
-                const count = thumbsUpReaction.count;
-                if (count > 0) {
+                const reactionCount = thumbsUpReaction.count;
+                if (reactionCount > 1) { // More than just the bot's reaction
+                    elizaLogger.log(`Tweet approved via Discord reaction`);
                     return "APPROVED";
                 }
             }
 
+            // If we reach here, no valid approval or rejection found
             return "PENDING";
         } catch (error) {
-            elizaLogger.error("Error checking approval status:", error);
+            elizaLogger.error(`Error checking approval status: ${error}`);
             return "PENDING";
-        }
-    }
-
-    private async cleanupPendingTweet(discordMessageId: string) {
-        const pendingTweetsKey = `twitter/${this.client.profile.username}/pendingTweet`;
-        const currentPendingTweets =
-            (await this.runtime.cacheManager.get<PendingTweet[]>(
-                pendingTweetsKey
-            )) || [];
-
-        // Remove the specific tweet
-        const updatedPendingTweets = currentPendingTweets.filter(
-            (tweet) => tweet.discordMessageId !== discordMessageId
-        );
-
-        if (updatedPendingTweets.length === 0) {
-            await this.runtime.cacheManager.delete(pendingTweetsKey);
-        } else {
-            await this.runtime.cacheManager.set(
-                pendingTweetsKey,
-                updatedPendingTweets
-            );
-        }
-    }
-
-    private async handlePendingTweet() {
-        elizaLogger.log("Checking Pending Tweets...");
-        const pendingTweetsKey = `twitter/${this.client.profile.username}/pendingTweet`;
-        const pendingTweets =
-            (await this.runtime.cacheManager.get<PendingTweet[]>(
-                pendingTweetsKey
-            )) || [];
-
-        for (const pendingTweet of pendingTweets) {
-            // Check if tweet is older than 24 hours
-            const isExpired =
-                Date.now() - pendingTweet.timestamp > 24 * 60 * 60 * 1000;
-
-            if (isExpired) {
-                elizaLogger.log("Pending tweet expired, cleaning up");
-
-                // Notify on Discord about expiration
-                try {
-                    const channel =
-                        await this.discordClientForApproval.channels.fetch(
-                            pendingTweet.channelId
-                        );
-                    if (channel instanceof TextChannel) {
-                        const originalMessage = await channel.messages.fetch(
-                            pendingTweet.discordMessageId
-                        );
-                        await originalMessage.reply(
-                            "This tweet approval request has expired (24h timeout)."
-                        );
-                    }
-                } catch (error) {
-                    elizaLogger.error(
-                        "Error sending expiration notification:",
-                        error
-                    );
-                }
-
-                await this.cleanupPendingTweet(pendingTweet.discordMessageId);
-                return;
-            }
-
-            // Check approval status
-            elizaLogger.log("Checking approval status...");
-            const approvalStatus: PendingTweetApprovalStatus =
-                await this.checkApprovalStatus(pendingTweet.discordMessageId);
-
-            if (approvalStatus === "APPROVED") {
-                elizaLogger.log("Tweet Approved, Posting");
-                await this.postTweet(
-                    this.runtime,
-                    this.client,
-                    pendingTweet.tweetTextForPosting,
-                    pendingTweet.roomId,
-                    pendingTweet.rawTweetContent,
-                    this.twitterUsername
-                );
-
-                // Notify on Discord about posting
-                try {
-                    const channel =
-                        await this.discordClientForApproval.channels.fetch(
-                            pendingTweet.channelId
-                        );
-                    if (channel instanceof TextChannel) {
-                        const originalMessage = await channel.messages.fetch(
-                            pendingTweet.discordMessageId
-                        );
-                        await originalMessage.reply(
-                            "Tweet has been posted successfully! ✅"
-                        );
-                    }
-                } catch (error) {
-                    elizaLogger.error(
-                        "Error sending post notification:",
-                        error
-                    );
-                }
-
-                await this.cleanupPendingTweet(pendingTweet.discordMessageId);
-            } else if (approvalStatus === "REJECTED") {
-                elizaLogger.log("Tweet Rejected, Cleaning Up");
-                await this.cleanupPendingTweet(pendingTweet.discordMessageId);
-                // Notify about Rejection of Tweet
-                try {
-                    const channel =
-                        await this.discordClientForApproval.channels.fetch(
-                            pendingTweet.channelId
-                        );
-                    if (channel instanceof TextChannel) {
-                        const originalMessage = await channel.messages.fetch(
-                            pendingTweet.discordMessageId
-                        );
-                        await originalMessage.reply(
-                            "Tweet has been rejected! ❌"
-                        );
-                    }
-                } catch (error) {
-                    elizaLogger.error(
-                        "Error sending rejection notification:",
-                        error
-                    );
-                }
-            }
         }
     }
 
     /**
-     * Generates a sassy greeting based on PST time
-     * @returns A time-appropriate sassy greeting or empty string
+     * Cleans up a pending tweet from the cache
+     * 
+     * @param taskId The ID of the verification task to clean up
      */
-    private getTimeBasedSassyGreeting(): string {
-        // Convert current time to PST
-        const pstTime = new Date().toLocaleString("en-US", {
-            timeZone: "America/Los_Angeles",
-        });
-        const hour = new Date(pstTime).getHours();
-
-        // Define time-based sassy greetings with expanded options
-        const greetings = {
-            earlyMorning: [
-                "Oh look who's up early destroying the planet",
-                "Good morning to everyone except fossil fuel lobbyists",
-                "Rise and shine, carbon criminals",
-                "Another dawn, another day of environmental chaos",
-                "Early bird catches the oil spill",
-                "Dawn patrol checking in on our dying planet",
-                "Up with the sun, watching corporations run",
-                "First light reveals more environmental blight",
-                "Wakey wakey, Earth's getting shakey"
-            ],
-            morning: [
-                "Morning sunshine, ready to face the climate crisis?",
-                "Good morning to the planet saviors only",
-                "Coffee's brewing, emissions are too",
-                "Hope your morning commute is eco-friendly",
-                "Morning! Let's talk about your carbon footprint",
-                "Starting the day with a fresh dose of eco-anxiety",
-                "Morning meeting with mother Earth's lawyers",
-                "Breakfast with a side of environmental collapse",
-                "Top of the morning to no one because the ozone's thinning"
-            ],
-            afternoon: [
-                "Afternoon tea with a side of harsh climate reality",
-                "Hey besties ruining the atmosphere",
-                "Lunch break from destroying ecosystems?",
-                "Mid-day check: how's that carbon footprint looking?",
-                "Afternoon delight (for corporate polluters)",
-                "Taking a siesta while the planet doesn't",
-                "Sunny afternoon, shame about the smog",
-                "Perfect weather for some climate action",
-                "Lunch hour PSA: Your burger's carbon footprint is showing"
-            ],
-            evening: [
-                "Evening folks, time for your daily dose of eco-guilt",
-                "Night's falling, so is our environmental future",
-                "Good evening to sustainable practices only",
-                "Evening update: Earth still needs saving",
-                "Evening news: Still no good news for the planet",
-                "Twilight hour environmental power check",
-                "Setting sun, rising temperatures",
-                "Evening reminder that corporations are killing us",
-                "Evening vibes interrupted by rising sea levels"
-            ],
-            lateNight: [
-                "Late night climate anxiety, anyone?",
-                "Can't sleep? Neither can the dying coral reefs",
-                "Midnight musings about environmental collapse",
-                "Night owls burning less carbon than the corporations",
-                "Counting endangered species instead of sheep",
-                "3AM thoughts about ocean acidification",
-                "Nighttime is the right time for eco-activism",
-                "While you sleep, the planet weeps",
-                "Midnight meditation on mass extinction"
-            ]
-        };
-
-        // Select greeting based on time
-        let timeBasedGreetings;
-        if (hour >= 4 && hour < 7) {
-            timeBasedGreetings = greetings.earlyMorning;
-        } else if (hour >= 7 && hour < 12) {
-            timeBasedGreetings = greetings.morning;
-        } else if (hour >= 12 && hour < 17) {
-            timeBasedGreetings = greetings.afternoon;
-        } else if (hour >= 17 && hour < 22) {
-            timeBasedGreetings = greetings.evening;
-        } else {
-            timeBasedGreetings = greetings.lateNight;
+    private async cleanupPendingTweet(taskId: string) {
+        try {
+            const pendingTweetsKey = `twitter/${this.client.profile.username}/pendingTweets`;
+            const currentPendingTweets = (await this.runtime.cacheManager.get<PendingTweet[]>(pendingTweetsKey)) || [];
+    
+            // Remove the specific tweet
+            const updatedPendingTweets = currentPendingTweets.filter(
+                (tweet) => tweet.taskId !== taskId
+            );
+    
+            if (updatedPendingTweets.length === 0) {
+                await this.runtime.cacheManager.delete(pendingTweetsKey);
+                elizaLogger.debug("All pending tweets processed, clearing cache");
+            } else {
+                await this.runtime.cacheManager.set(pendingTweetsKey, updatedPendingTweets);
+                elizaLogger.debug(`Updated pending tweets cache, ${updatedPendingTweets.length} tweets remaining`);
+            }
+            
+            // Create a consistent room ID for tweet verification tracking
+            const roomId = stringToUuid("twitter_verification_room");
+            
+            // Ensure the room exists before creating a memory
+            try {
+                await this.runtime.ensureRoomExists(roomId);
+                await this.runtime.ensureParticipantInRoom(this.runtime.agentId, roomId);
+                
+                // Add a memory to track the resolution of this verification
+                await this.runtime.messageManager.createMemory({
+                    id: stringToUuid(`tweet-verification-cleanup-${Date.now()}`),
+                    userId: this.runtime.agentId,
+                    agentId: this.runtime.agentId,
+                    content: {
+                        text: `Verification task ${taskId} processed and removed from pending queue`,
+                        metadata: {
+                            taskType: "tweetVerificationCleanup",
+                            taskId: taskId,
+                            timestamp: Date.now()
+                        }
+                    },
+                    roomId: roomId,
+                    createdAt: Date.now()
+                });
+            } catch (roomError) {
+                // If we can't create the room or memory, just log it but don't fail
+                elizaLogger.error("Error creating verification tracking memory:", roomError);
+                // Don't rethrow - we should still consider the task cleaned up even if we can't save a memory
+            }
+        } catch (error) {
+            // Log the error but don't let it crash the process
+            elizaLogger.error("Error cleaning up pending tweet:", error);
         }
+    }
 
+     /**
+     * Handles pending tweets by checking their verification status and processing them accordingly
+     */
+     private async handlePendingTweet() {
+        elizaLogger.log(`Checking pending tweets using ${this.approvalProvider} verification...`);
+        elizaLogger.debug(`🔍 handlePendingTweet called with approval provider: "${this.approvalProvider}"`);
         
-        return Math.random() < 0.4 
-            ? timeBasedGreetings[Math.floor(Math.random() * timeBasedGreetings.length)] + "\n\n"
-            : "";
+        // Additional safeguard to prevent Discord initialization for RAIINMAKER
+        if (this.approvalProvider.toUpperCase() === "RAIINMAKER") {
+            elizaLogger.debug(`🔍 Explicitly ensuring Discord client is null for RAIINMAKER provider`);
+            this.discordClientForApproval = null;
+        }
+        
+        const pendingTweetsKey = `twitter/${this.client.profile.username}/pendingTweets`;
+        const pendingTweets = (await this.runtime.cacheManager.get<PendingTweet[]>(pendingTweetsKey)) || [];
+    
+        if (pendingTweets.length === 0) {
+            elizaLogger.log("No pending tweets to check");
+            return;
+        }
+    
+        elizaLogger.log(`Found ${pendingTweets.length} pending tweets to check`);
+        elizaLogger.debug(`🔍 Processing ${pendingTweets.length} pending tweets`);
+        
+        for (const pendingTweet of pendingTweets) {
+            elizaLogger.log(`Processing pending tweet with taskId: ${pendingTweet.taskId}`);
+            elizaLogger.debug(`🔍 Checking tweet with taskId: ${pendingTweet.taskId}`);
+            
+            // Check if tweet is older than 24 hours
+            const isExpired = Date.now() - pendingTweet.timestamp > 24 * 60 * 60 * 1000;
+    
+            if (isExpired) {
+                elizaLogger.warn(`Pending tweet with task ID ${pendingTweet.taskId} expired after 24 hours`);
+                elizaLogger.debug(`🔍 Tweet expired, cleaning up`);
+                await this.cleanupPendingTweet(pendingTweet.taskId);
+                continue;
+            }
+    
+            // Check approval status using the configured provider
+            elizaLogger.log(`Checking verification status for task: ${pendingTweet.taskId}`);
+            elizaLogger.debug(`🔍 About to call checkVerificationStatus for task: ${pendingTweet.taskId}`);
+            const approvalStatus = await this.checkVerificationStatus(pendingTweet.taskId);
+            elizaLogger.log(`Approval status for task ${pendingTweet.taskId}: ${approvalStatus}`);
+            elizaLogger.debug(`🔍 Received approval status: ${approvalStatus}`);
+    
+            if (approvalStatus === "APPROVED") {
+                elizaLogger.log(`Tweet with task ID ${pendingTweet.taskId} approved, posting now...`);
+                elizaLogger.debug(`🔍 Tweet approved, proceeding to post`);
+                
+                try {
+                    await this.postTweet(
+                        this.runtime,
+                        this.client,
+                        pendingTweet.tweetTextForPosting,
+                        pendingTweet.roomId,
+                        pendingTweet.rawTweetContent,
+                        this.twitterUsername
+                    );
+                    
+                    elizaLogger.success(`Successfully posted verified tweet`);
+                } catch (error) {
+                    elizaLogger.error(`Error posting approved tweet:`, error);
+                }
+    
+                await this.cleanupPendingTweet(pendingTweet.taskId);
+                
+            } else if (approvalStatus === "REJECTED") {
+                elizaLogger.warn(`Tweet with task ID ${pendingTweet.taskId} rejected by ${this.approvalProvider} verification`);
+                elizaLogger.debug(`🔍 Tweet rejected, cleaning up`);
+                await this.cleanupPendingTweet(pendingTweet.taskId);
+            } else {
+                elizaLogger.log(`Tweet with task ID ${pendingTweet.taskId} still pending verification`);
+                elizaLogger.debug(`🔍 Tweet still pending verification`);
+            }
+        }
+    }
+    
+    private async startVerificationPolling() {
+        try {
+            // Set up the regular interval check
+            setInterval(async () => {
+                try {
+                    // Extra safeguard to ensure Discord is null for RAIINMAKER on each check
+                    if (this.approvalProvider.toUpperCase() === "RAIINMAKER") {
+                        this.discordClientForApproval = null;
+                    }
+                    
+                    await this.handlePendingTweet();
+                } catch (error) {
+                    elizaLogger.error("Error in tweet verification check loop:", error);
+                }
+            }, 5 * 60 * 1000); // Check every 5 minutes
+            
+            elizaLogger.log(`Started ${this.approvalProvider} verification check loop`);
+        } catch (error) {
+            elizaLogger.error("Error starting verification polling:", error);
+        }
     }
 }

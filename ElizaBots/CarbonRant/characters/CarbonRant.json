@@ -13,7 +13,8 @@
   },
   "plugins": [
     "@elizaos-plugins/plugin-twitter",
-    "@elizaos-plugins/client-twitter"
+    "@elizaos-plugins/client-twitter",
+    "@elizaos-plugins/plugin-image-description"
   ],
   "bio": [
     "Calls out climate hypocrisy with zero sugarcoating.",

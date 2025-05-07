@@ -4,11 +4,8 @@ import type { ClientBase } from "./base";
 import { fetchMediaData } from "./utils";
 import type { MediaData } from "./types";
 import dotenv from "dotenv";
-import fs from "fs";
-import shortenUrl from "tinyurl";
-import OpenAI from "openai";
-
 import Together from "together-ai";
+import OpenAI from "openai";
 
 dotenv.config({ path: "../../../../.env" });
 
@@ -22,7 +19,8 @@ export interface TweetInfo {
   mediaData?: MediaData[];
 }
 
-const generateImage = true; // Set to true to generate images, false to fetch from Pexels
+const generateImage = true; 
+const imageGenerationPercentage = 40;
 
 /**
  * Converts a string to a UUID using a deterministic hashing approach
@@ -43,6 +41,9 @@ export function convertStringToUuid(
  * Hook handler for Twitter pre-post operations
  */
 export class TwitterPrePostHookHandler {
+  static generateImageAndContext(arg0: { topic: string; post: { content: any; }; agent: IAgentRuntime; }): { image: any; imageContext: any; } | PromiseLike<{ image: any; imageContext: any; }> {
+      throw new Error("Method not implemented.");
+  }
   /**
    * Process pre-post hook for tweets
    * @param runtime The agent runtime
@@ -63,6 +64,12 @@ export class TwitterPrePostHookHandler {
 
       if (hookEnabled?.toLowerCase() !== "true" || !agentUploadData.isImg) {
         return tweetInfo.mediaData; // Return existing media data if hook is not enabled
+      }
+
+      // Add random chance for image generation (40%)
+      if (generateImage && Math.random() * 100 > imageGenerationPercentage) {
+        elizaLogger.log(`Random chance determined no image for this tweet (${imageGenerationPercentage}% chance)`);
+        return tweetInfo.mediaData; // Skip image generation based on random chance
       }
 
       // Clone existing media data if any
@@ -140,11 +147,11 @@ export class TwitterPrePostHookHandler {
   }
 
   /**
-   * Post a tweet with automatically added hashtags
-   * @param client The Twitter client base
+   * Fetch a web image related to tweet content
    * @param runtime The agent runtime
    * @param tweetText The text content of the tweet
-   * @param hashtags Array of hashtags to append (without # symbol)
+   * @param tweetInfo Additional tweet information
+   * @returns URL of the fetched image or "NO_IMAGE" if no relevant image found
    */
   static async fetchWebImage(
     runtime: IAgentRuntime,
@@ -296,6 +303,14 @@ export class TwitterPrePostHookHandler {
         }
     }
   }
+  
+  /**
+   * Validates if an image is relevant to a tweet
+   * @param runtime The agent runtime
+   * @param tweetText The text content of the tweet
+   * @param imageUrl URL of the image to validate
+   * @returns Boolean indicating if the image is relevant
+   */
   static async fetchImageValidation(
     runtime: IAgentRuntime,
     tweetText: string,
@@ -319,21 +334,23 @@ export class TwitterPrePostHookHandler {
 
       elizaLogger.log("Image description prompt:", imageDescPrompt as string);
       if (imageDescPrompt.toLowerCase() !== "yes") {
-        return false; // Return a placeholder if no image is relevant.
+        return false; // Return false if the image is not relevant
       }
       return true; // Return true if the image is relevant
 
     } catch (error) {
       elizaLogger.error("Error generating image description:", error as string);
-      return false; // Return a placeholder if image generation fails
+      return false; // Return false if validation fails
     }
   }
+  
   /**
-   * Generates an image based on tweet content and saves it locally
+   * Generates an image based on tweet content using Together AI
    * @param runtime The agent runtime
    * @param tweetText The text content to generate an image for
+   * @param tweetInfo Additional tweet information
    * @param imageType The type of image to generate (chart, infographic, etc.)
-   * @returns Local URL path to the generated image
+   * @returns URL to the generated image or "NO_IMAGE" if generation fails
    */
   static async generateImageWithTogether(
     runtime: IAgentRuntime,
@@ -383,7 +400,7 @@ export class TwitterPrePostHookHandler {
    * @param runtime The agent runtime
    * @param tweetText The text content to generate an image for
    * @param tweetInfo Additional tweet information
-   * @returns URL to the generated image
+   * @returns URL to the generated image or "NO_IMAGE" if generation fails
    */
   static async generateImageWithOpenAI(
     runtime: IAgentRuntime,
@@ -439,350 +456,4 @@ export class TwitterPrePostHookHandler {
       return "NO_IMAGE"; // Return a placeholder if image generation fails
     }
   }
-
-  /**
-   * Regenerates a tweet that didn't pass the safety check
-   * @param runtime The agent runtime
-   * @param originalTweet The original tweet that failed safety check
-   * @param twitterClient The Twitter client
-   * @returns New tweet text that addresses safety concerns
-   */
-  static async regenerateTweetForSafety(
-    runtime: IAgentRuntime,
-    originalTweet: string,
-    twitterClient: ClientBase
-  ): Promise<string> {
-    try {
-      elizaLogger.log("Regenerating tweet for safety concerns");
-      
-      // Extract URLs from the original tweet to preserve them
-      const urlRegex = /(https?:\/\/[^\s]+)/g;
-      const extractedUrls = originalTweet.match(urlRegex) || [];
-      const urlString = extractedUrls.length > 0 ? 
-        `\n\nLinks to preserve: ${extractedUrls.join(' ')}` : '';
-      
-      const regenerationTemplate = `
-        Original tweet: "${originalTweet}"
-        
-        The above tweet did not pass our safety check. It may contain content that could be interpreted as harmful, offensive, politically charged, controversial, or inappropriate.
-        
-        Please rewrite the tweet while:
-        1. Keeping the core message and intent
-        2. Removing any potentially harmful, offensive, or controversial elements
-        3. Using more neutral language
-        4. Ensuring it aligns with professional and inclusive communication standards
-        5. Maintaining the same general topic and information
-        6. Keeping within 145 characters
-        7. IMPORTANT: Include all original URLs/links from the original tweet${urlString}
-        
-        Provide only the rewritten tweet without explanations or quotes.
-      `;
-      
-      const regeneratedTweet = await generateText({
-        runtime,
-        context: regenerationTemplate,
-        modelClass: ModelClass.MEDIUM,
-        stop: ["\n\n"],
-      });
-      
-      // Remove any quotes that might be surrounding the regenerated tweet
-      //@ts-ignore
-      const cleanedTweet = regeneratedTweet.replace(/^["'](.*)["']$/s, '$1').trim();
-      
-      // If any URLs from the original tweet are missing in the regenerated tweet, append them
-      let finalTweet = cleanedTweet;
-      for (const url of extractedUrls) {
-        if (!finalTweet.includes(url)) {
-          // Check if adding the URL would exceed Twitter's character limit
-          if ((finalTweet + ' ' + url).length <= 280) {
-            finalTweet = finalTweet + ' ' + url;
-          }
-        }
-      }
-      
-      elizaLogger.log("Tweet regenerated for safety: " + finalTweet);
-      
-      // Store in cache for logging/tracking purposes
-      await runtime.cacheManager.set(
-        `twitter/${twitterClient.profile.username}/safety_regenerated/${Date.now()}`,
-        {
-          original: originalTweet,
-          regenerated: finalTweet
-        }
-      );
-      
-      return finalTweet;
-    } catch (error) {
-      elizaLogger.error("Error regenerating tweet for safety:", error);
-      // If regeneration fails, return a generic safe message
-      return "Exciting developments in sustainability happening today. Stay tuned for more updates! #Sustainability";
-    }
-  }
-
-  /**
-   * Regenerates a tweet that scored poorly on popularity metrics
-   * @param runtime The agent runtime
-   * @param originalTweet The original tweet with low popularity score
-   * @param popularityScore The score the original tweet received
-   * @param twitterClient The Twitter client
-   * @returns New tweet text that's more likely to be engaging
-   */
-  static async regenerateTweetForPopularity(
-    runtime: IAgentRuntime,
-    originalTweet: string,
-    popularityScore: number,
-    twitterClient: ClientBase
-  ): Promise<string> {
-    try {
-      elizaLogger.log(`Regenerating tweet for popularity. Original score: ${popularityScore}`);
-      
-      // Extract URLs from the original tweet to preserve them
-      const urlRegex = /(https?:\/\/[^\s]+)/g;
-      const extractedUrls = originalTweet.match(urlRegex) || [];
-      const urlString = extractedUrls.length > 0 ? 
-        `\n\nLinks to preserve: ${extractedUrls.join(' ')}` : '';
-      
-      const regenerationTemplate = `
-        Original tweet: "${originalTweet}"
-        
-        The above tweet received a low engagement prediction score of ${popularityScore}/100. Please rewrite this tweet to make it more engaging while:
-        
-        1. Keeping the same core message and information
-        2. Making it more attention-grabbing with a stronger hook
-        3. Using more vibrant and descriptive language
-        4. Potentially adding a question or call to action
-        5. Ensuring it's relevant to current trends or interests
-        6. Using more dynamic sentence structure
-        7. Including relevant hashtags at the end
-        8. Keeping within 145 characters
-        9. IMPORTANT: Include all original URLs/links from the original tweet${urlString}
-        
-        Provide only the rewritten tweet without explanations or quotes.
-      `;
-      
-      const regeneratedTweet = await generateText({
-        runtime,
-        context: regenerationTemplate,
-        modelClass: ModelClass.MEDIUM,
-        stop: ["\n\n"],
-      });
-      
-      // Remove any quotes that might be surrounding the regenerated tweet
-      //@ts-ignore
-      const cleanedTweet = regeneratedTweet.replace(/^["'](.*)["']$/s, '$1').trim();
-      
-      // If any URLs from the original tweet are missing in the regenerated tweet, append them
-      let finalTweet = cleanedTweet;
-      for (const url of extractedUrls) {
-        if (!finalTweet.includes(url)) {
-          // Check if adding the URL would exceed Twitter's character limit
-          if ((finalTweet + ' ' + url).length <= 280) {
-            finalTweet = finalTweet + ' ' + url;
-          }
-        }
-      }
-      
-      elizaLogger.log("Tweet regenerated for popularity: " + finalTweet);
-      
-      // Store in cache for logging/tracking purposes
-      await runtime.cacheManager.set(
-        `twitter/${twitterClient.profile.username}/popularity_regenerated/${Date.now()}`,
-        {
-          original: originalTweet,
-          originalScore: popularityScore,
-          regenerated: finalTweet
-        }
-      );
-      
-      return finalTweet;
-    } catch (error) {
-      elizaLogger.error("Error regenerating tweet for popularity:", error);
-      // If regeneration fails, return the original tweet
-      return originalTweet;
-    }
-  }
-
-  /**
-   * Adds reference links to a tweet without checking if it contains factual claims
-   * @param runtime The agent runtime
-   * @param tweetText The tweet text to add references to
-   * @returns Enhanced tweet with reference links
-   */
-  static async addFactReferenceToTweet(
-    runtime: IAgentRuntime,
-    tweetText: string
-  ): Promise<string> {
-    try {
-      elizaLogger.log(`Finding references for tweet: ${tweetText}`);
-      
-      // Extract the main topic from the tweet
-      const extractTopicPrompt = `
-        Tweet: "${tweetText}"
-        
-        Extract the main topic or claim from this tweet that would benefit from a reference link.
-        Return only the specific topic/claim, without additional commentary.
-      `;
-      
-      const mainTopic = await generateText({
-        runtime,
-        context: extractTopicPrompt,
-        modelClass: ModelClass.SMALL,
-        stop: ["\n\n"],
-      });
-      
-      elizaLogger.log(`Extracted main topic: ${mainTopic}`);
-      
-      // Generate a search query to find references
-      const searchQueryPrompt = `
-        Tweet topic: "${mainTopic}"
-        
-      
-      `;
-      
-      const searchQuery = await generateText({
-        runtime,
-        context: searchQueryPrompt,
-        modelClass: ModelClass.MEDIUM,
-        stop: ["\n"],
-      });
-      
-      elizaLogger.log(`Generated search query: ${searchQuery}`);
-      
-      // Perform a web search using the generated query
-      const GOOGLE_SEARCH_API_KEY = runtime.getSetting("GOOGLE_SEARCH_API_KEY");
-      const GOOGLE_SEARCH_ENGINE_ID = runtime.getSetting("GOOGLE_SEARCH_ENGINE_ID");
-      
-      if (!GOOGLE_SEARCH_API_KEY || !GOOGLE_SEARCH_ENGINE_ID) {
-        elizaLogger.warn("Google Search API not configured, using fallback reference");
-        
-        return tweetText; // Return original tweet if API keys are not available
-      }
-      
-      // With API keys available, perform actual search
-      const searchUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_API_KEY}&cx=${GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(searchQuery)}&num=5`;
-      
-      const searchResponse = await fetch(searchUrl);
-      const searchResults = await searchResponse.json();
-      
-      if (!searchResponse.ok || !searchResults.items || searchResults.items.length === 0) {
-        elizaLogger.warn("No search results found");
-        return tweetText;
-      }
-      
-      // Evaluate the search results to find the best reference
-      const topResults = searchResults.items.slice(0, 5);
-      const resultsContext = topResults.map((result: any, index: number) => 
-        `Result ${index + 1}: ${result.title}\nURL: ${result.link}\nSnippet: ${result.snippet}`
-      ).join('\n\n');
-      
-      const selectReferencePrompt = `
-        Tweet topic: "${mainTopic}"
-        
-        Search results:
-        ${resultsContext}
-        
-        
-      `;
-      
-      const bestResultIndex = await generateText({
-        runtime,
-        context: selectReferencePrompt,
-        modelClass: ModelClass.SMALL,
-        stop: ["\n"],
-      });
-      
-      // Extract the index (1-based to 0-based)
-      const resultIndex = parseInt(bestResultIndex) - 1;
-      if (isNaN(resultIndex) || resultIndex < 0 || resultIndex >= topResults.length) {
-        elizaLogger.warn(`Invalid result index: ${bestResultIndex}`);
-        return tweetText;
-      }
-      
-      // Get the reference URL
-      const referenceUrl = topResults[resultIndex].link;
-
-      const shortenedUrl = await this.shortenUrl(runtime, referenceUrl);
-
-      elizaLogger.log(`Selected reference: ${referenceUrl}`);
-      
-      // Add the reference to the tweet if there's room
-      // if (tweetText.length + shortenedUrl.length + 1 <= 280) {
-        const tweetWithReference = `${tweetText} ${shortenedUrl}`;
-        
-        // Store the reference data in cache
-        await runtime.cacheManager.set(
-          `twitter/references/${Date.now()}`,
-          {
-            originalTweet: tweetText,
-            mainTopic: mainTopic,
-            referenceUrl: shortenedUrl,
-            searchQuery: searchQuery
-          }
-        );
-        
-        return tweetWithReference;
-      // } else {
-      //   elizaLogger.log("Tweet too long to add reference");
-      //   return tweetText;
-      // }
-      
-    } catch (error) {
-      elizaLogger.error("Error adding reference to tweet:", error);
-      return tweetText; // Return original tweet if reference addition fails
-    }
-  }
-
-  /**
-   * Checks if a tweet already contains a URL
-   * @param tweetText The tweet text to check
-   * @returns Boolean indicating if the tweet contains a URL
-   */
-  static tweetContainsUrl(tweetText: string): boolean {
-    // Regular expression to match URLs
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const matches = tweetText.match(urlRegex);
-    
-    return matches !== null && matches.length > 0;
-  }
-
-  /**
-   * Shortens a URL using TinyURL API
-   * @param runtime The agent runtime
-   * @param longUrl The URL to shorten
-   * @returns Shortened URL or original URL if shortening failed
-   */
-  static async shortenUrl(
-    runtime: IAgentRuntime,
-    longUrl: string
-  ): Promise<string> {
-    const API_KEY_TINYURL = runtime.getSetting("TINY_URL_API_KEY") as string;
-    if (!API_KEY_TINYURL) {
-      elizaLogger.error("TinyURL API key not found!");
-      return longUrl;
-    }
-
-    try {
-      const response = await fetch("https://api.tinyurl.com/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${API_KEY_TINYURL}`,
-        },
-        body: JSON.stringify({ url: longUrl }),
-      });
-      
-      const data = await response.json();
-      if (data.data && data.data.tiny_url) {
-        elizaLogger.log(`URL shortened from ${longUrl} to ${data.data.tiny_url}`);
-        return data.data.tiny_url;
-      } else {
-        elizaLogger.warn("URL shortening failed with response:", data);
-        return longUrl;
-      }
-    } catch (error) {
-      elizaLogger.error("Error shortening URL:", error);
-      return longUrl;
-    }
-  }
 }
-
