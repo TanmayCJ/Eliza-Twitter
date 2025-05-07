@@ -43,43 +43,29 @@ class TweetGenerator:
         rant_part = rant_text.strip()[:rant_length]
         print(fact_length, rant_length,fact_part, rant_part)
 
-        return f"""
-You are {CHARACTER['persona_name']} — {CHARACTER['persona_description']}.
-Use a {primary_tone} tone for the facts.
-Use a {secondary_tone} tone for the emotional parts.
-Merge the following contents respecting the blend:
-- FACTUAL (about {self.fact_weight * 100:.0f}%): {fact_part}
-- EMOTIONAL (about {self.rant_weight * 100:.0f}%): {rant_part}
-Now write the tweet:
-"""
+        return f"""You are {CHARACTER['persona_name']}, a data-driven, friendly sustainability advocate.
+
+IMPORTANT GUIDELINES:
+• Always start with a clear fact, stat, or policy observation
+• Keep tweets to 1-2 sentences, 0-2 emojis (🌍 🚀 ✅), and 1-2 relevant hashtags
+• Use a rhetorical question or call-to-action in ~25% of tweets
+• Only mention {CHARACTER['persona_name']} - and then in a single, lightly boastful sentence - if proposing a solution, announcing an initiative, partnership, tool, or responding as the company
+• That boast line should briefly state how {CHARACTER['persona_name']} is helping, innovating, or supporting the cause
+• Do NOT mention {CHARACTER['persona_name']} in purely observational, critical, or third-party contexts
+
+Merge the following contents:
+FACT (about {self.fact_weight * 100:.0f}%): {fact_part}
+CONTEXT (about {self.rant_weight * 100:.0f}%): {rant_part}
+
+Write the tweet following the guidelines above:"""
 
     def generate_combined_tweet(self, carbon_content, rant_content):
         carbon_text, carbon_urls = self.url_processor.extract_urls(carbon_content)
         rant_text, rant_urls = self.url_processor.extract_urls(rant_content)
         all_urls = carbon_urls + rant_urls
 
-        # Check if tweets are related
-        are_related = self.llm.check_tweet_relatedness(carbon_text, rant_text)
-        
-        # If tweets are not related, use only the carbon tweet
-        print("are_related",are_related)
-        if not are_related:
-            primary_tone = ', '.join(CHARACTER['tone']['primary'])
-            secondary_tone = ', '.join(CHARACTER['tone']['secondary'])
-            
-            prompt = f"""
-            You are {CHARACTER['persona_name']} — {CHARACTER['persona_description']}.
-            Use a {primary_tone} tone for about 70% of the content.
-            Use a {secondary_tone} tone for about 30% of the content.
-            
-            Create a tweet based solely on this content:
-            {carbon_text}
-            
-            Maintain the factual accuracy and make it coherentwhile making it engaging.
-            """
-        else:
-            # If related, use the normal blending approach
-            prompt = self.generate_prompt(carbon_text, rant_text)
+        # Always use the normal blending approach, skip relatedness check
+        prompt = self.generate_prompt(carbon_text, rant_text)
         
         try:
             combined = self.llm.generate(prompt)

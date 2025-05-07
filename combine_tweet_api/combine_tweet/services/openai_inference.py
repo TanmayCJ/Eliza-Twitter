@@ -66,121 +66,75 @@ class TweetLLM:
         )
 
     def generate(self, prompt, max_tokens=60, temperature=0.7):
-        character_json = json.dumps(self.character, indent=2)
-        primary_tone = ', '.join(self.character['tone']['primary'])
-        secondary_tone = ', '.join(self.character['tone']['secondary'])
-        primary_tone_weight = 0.7
-        secondary_tone_weight = 0.3
-
-        full_prompt = (
-            "IMPORTANT GUIDELINES:\n"
-            "1. Strictly stick to the content from the provided tweets\n"
-            "2. Do not invent or hallucinate any facts, statistics, or entities\n"
-            "3. Do not mention any handles/accounts that aren't in the source tweets\n"
-            "4. Focus on climate facts and action\n"
-            "5. Be concise and direct\n"
-            "6. Do not add any URLs (they will be added automatically)\n"
-            "7. Include at most 2 relevant hashtags\n\n"
-            "8. Do not include the message 'here is the regenerated tweet' at the start\n"
-            "9. Use content from both tweets, not just one\n"
-            "10. Do not include any facts or statistics not present in the source tweets.\n"
-            f"Use the following character data to generate a tweet:\n"
-            f"{character_json}\n"
-            f"Use a {primary_tone} tone for about {int(primary_tone_weight*100)}% of the content.\n"
-            f"Use a {secondary_tone} tone for about {int(secondary_tone_weight*100)}% of the content.\n"
-            f"{prompt}\nTweet:"
-        )
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    f"You are {self.character['persona_name']}, a data-driven, friendly sustainability advocate.\n"
+                    "• Always start with a clear fact, stat, or policy observation.\n"
+                    "• Keep tweets to 1-2 sentences, 0-2 emojis (🌍 🚀 ✅), and 1-2 relevant hashtags.\n"
+                    "• Use a rhetorical question or call-to-action in ~25% of tweets.\n"
+                    f"• Only mention {self.character['persona_name']}—and then in a single, lightly boastful sentence—if proposing a solution, announcing an initiative, partnership, tool, or responding as the company.\n"
+                    f"• That boast line should briefly state how {self.character['persona_name']} is helping, innovating, or supporting the cause.\n"
+                    f"• Do NOT mention {self.character['persona_name']} in purely observational, critical, or third-party contexts."
+                )
+            },
+            # Example tweets to demonstrate the style
+            {
+                "role": "assistant",
+                "content": "Cutting 800 EPA grants jeopardizes critical climate infrastructure—what's our plan to rebuild resilience? 🌍 #ActOnClimate"
+            },
+            {
+                "role": "assistant",
+                "content": f"We've launched a real-time emissions dashboard for every organization to see its impact live. At {self.character['persona_name']}, we're empowering teams with transparent data to drive real change. 🚀 #CarbonData"
+            },
+            {
+                "role": "assistant", 
+                "content": f"Global CO₂ emissions hit 36.8 Gt in 2024—highest ever recorded. Ready to turn the tide? 🌍 #ClimateAction"
+            },
+            {
+                "role": "assistant",
+                "content": f"Our new alliance with leading researchers brings cutting-edge science into every carbon report. At {self.character['persona_name']}, we're uniting academia and industry to accelerate sustainability. 🔗 #ClimateCollab"
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
 
         try:
             cfg = generation_config.copy()
             cfg["temperature"] = temperature
             cfg["max_output_tokens"] = max_tokens
+            
+            # Format the messages for Gemini's content structure
+            formatted_prompt = "\n\n".join([f"{msg['role'].upper()}: {msg['content']}" for msg in messages])
+            
             total_tokens = client.models.count_tokens(
                 model="gemini-2.0-flash-001", 
-                contents=full_prompt,
+                contents=formatted_prompt,
             )
             print("total_tokens: ", total_tokens)
+            
             response = client.models.generate_content(
                 model="gemini-2.0-flash",
-                contents=full_prompt,
-                config=types.GenerateContentConfig(temperature= 0.7,
-                top_p= 0.95,
-                top_k=64,
-                max_output_tokens= 60,
-                system_instruction=system_instruction,
-                safety_settings=safety_settings,
-                response_mime_type= "text/plain"
+                contents=formatted_prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.7,
+                    top_p=0.95,
+                    top_k=64,
+                    max_output_tokens=60,
+                    system_instruction=system_instruction,
+                    safety_settings=safety_settings,
+                    response_mime_type="text/plain"
+                )
             )
-                
-            )
+            
             generated = response.text
+            
         except Exception as e:
             logging.error("Error generating tweet: %s", e)
             generated = "An error occurred while generating the tweet. Please try again."
+        
         print(generated)
-
         return generated
-
-    def check_tweet_relatedness(self, tweet1, tweet2, threshold=0.7):
-        """
-        Checks if two tweets are topically related.
-        
-        Args:
-            tweet1 (str): The first tweet content
-            tweet2 (str): The second tweet content
-            threshold (float): Confidence threshold to consider tweets related (0.0-1.0)
-            
-        Returns:
-            bool: True if tweets are related, False otherwise
-        """
-        
-        # Construct a focused prompt for relation categorization
-        relatedness_prompt = (
-            "Your task is to determine if two climate/sustainability tweets are topically related.\n\n"
-            "TWEET 1:\n"
-            f"{tweet1}\n\n"
-            "TWEET 2:\n"
-            f"{tweet2}\n\n"
-            "INSTRUCTIONS:\n"
-            "1. Analyze the central topic, entities, and claims in each tweet\n"
-            "2. Determine if they discuss the same environmental issue, policy, or solution\n"
-            "3. Calculate the relatedness score between the two tweets\n"
-            "4. If the relatedness score is less than 0.2, return False\n"
-            "5. Respond with ONLY ONE of these exact phrases:\n"
-            "   - 'RELATED' - if they share core topics and could be merged coherently\n"
-            "   - 'UNRELATED' - if combining them would result in an unfocused, disconnected message\n\n"
-            "Response:"
-        )
-        
-        try:
-            # Using a low temperature for more deterministic results
-            cfg = generation_config.copy()
-            cfg["temperature"] = 0.1
-            cfg["max_output_tokens"] = 10
-            # Call the Gemini API
-            total_tokens = client.models.count_tokens(
-                model="gemini-2.0-flash", contents=relatedness_prompt
-            )
-            print("total_tokens: ", total_tokens)
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=relatedness_prompt
-            )
-            
-            result = response.text.strip().upper()
-            print(result)
-            # Extract just the decision
-            if "UNRELATED" in result:
-                return False
-            elif "RELATED" in result:
-                return True
-            else:
-                # If the model didn't respond with the expected format, 
-                # default to considering them unrelated
-                logging.warning(f"Unexpected relatedness response: {result}")
-                return False
-                
-        except Exception as e:
-            logging.error(f"Error checking tweet relatedness: {str(e)}")
-            # On error, default to True to attempt merging
-            return True
