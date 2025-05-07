@@ -572,7 +572,8 @@ export class TwitterPostClient {
         client: ClientBase,
         tweet: Tweet,
         roomId: UUID,
-        rawTweetContent: string
+        rawTweetContent: string,
+        store: boolean = true
     ) {
         // Cache the last post details
         await runtime.cacheManager.set(
@@ -590,7 +591,9 @@ export class TwitterPostClient {
         elizaLogger.log(`Tweet posted:\n ${tweet.permanentUrl}`);
 
         // Print collected tweet information
-        this.storeTweetInfo(tweet, rawTweetContent, runtime);
+        if (store) { 
+            this.storeTweetInfo(tweet, rawTweetContent, runtime);
+        }
 
         // Ensure the room and participant exist
         await runtime.ensureRoomExists(roomId);
@@ -704,7 +707,329 @@ export class TwitterPostClient {
         //     });
     }
 
+    /**
+     * Creates a Twitter thread by splitting content into multiple tweets and posting them in sequence
+     * Each tweet will be numbered (e.g., 1/6, 2/6, etc.)
+     * 
+     * @param content The full content to be split into multiple tweets
+     * @param totalParts Optional - specify the exact number of tweets in the thread, otherwise calculated automatically
+     * @returns Array of tweet IDs that were posted as part of the thread
+     */
+    async createTwitterThread(
+        runtime: IAgentRuntime,
+        content: string, 
+        roomId: UUID,
+        totalParts?: number
+    ): Promise<string[]> {
+        elizaLogger.log("Creating Twitter thread");
+        
+        // Maximum content length per tweet, accounting for the thread indicator (e.g., " 1/6")
+        const maxContentPerTweet = this.client.twitterConfig.MAX_TWEET_LENGTH - 10;
+        
+        // Split content into reasonable chunks while preserving sentence structure
+        const parts = await this.splitContentForThread(runtime, content, maxContentPerTweet, totalParts);
+        const actualTotalParts = parts.length;
+        
+        // Array to store the IDs of all tweets in the thread
+        const tweetIds: string[] = [];
+        let previousTweetId: string | undefined = undefined;
 
+        let storeTweetIfThread = true;
+        
+        // Post each part as a tweet in the thread
+        for (let i = 0; i < parts.length; i++) {
+            const partNumber = i + 1;
+            const threadIndicator = ` ${partNumber}/${actualTotalParts}`;
+            
+            // Add the thread indicator to the tweet content
+            let tweetContent = parts[i].trim();
+            
+            // // Check if we need to append the thread indicator or if it's already embedded in content
+            // if (!tweetContent.includes(`${partNumber}/${actualTotalParts}`)) {
+            //     // Determine the best place to add the indicator - either at the beginning or end
+            //     if (tweetContent.startsWith("@") || Math.random() > 0.7) {
+            //         // For replies or randomly, place at the end
+            //         tweetContent = `${tweetContent} ${threadIndicator}`;
+            //     } else {
+            //         // Otherwise, place at the beginning
+            //         tweetContent = `${threadIndicator} ${tweetContent}`;
+            //     }
+            // }
+            
+            elizaLogger.log(`Posting thread part ${partNumber}/${actualTotalParts}: ${tweetContent}`);
+            
+            try {
+                // Post this tweet in the thread - if not the first tweet, use the previous tweet ID as reply-to
+                let result;
+                
+                if (tweetContent.length > DEFAULT_MAX_TWEET_LENGTH) {
+                    result = await this.handleNoteTweet(this.client, tweetContent, previousTweetId);
+                } else {
+                    result = await this.sendStandardTweet(this.client, tweetContent, previousTweetId);
+                }
+                
+                if (!result) {
+                    elizaLogger.error(`Failed to post tweet ${partNumber}/${actualTotalParts}`);
+                    continue;
+                }
+                
+                const tweet = this.createTweetObject(result, this.client, this.twitterUsername);
+                
+                // Store the ID for the next tweet in the thread
+                previousTweetId = tweet.id;
+                tweetIds.push(tweet.id);
+                
+                // Update the tweet text to match the final version that was posted
+                tweet.text = tweetContent;
+                
+                // Process and cache the tweet
+                await this.processAndCacheTweet(
+                    this.runtime,
+                    this.client,
+                    tweet,
+                    roomId,
+                    tweetContent,
+                    storeTweetIfThread
+                );
+                
+                storeTweetIfThread = false;
+                // Add a short delay between tweets to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 3000)); // 3 second delay
+                
+            } catch (error) {
+                elizaLogger.error(`Error posting tweet ${partNumber}/${actualTotalParts}:`, error);
+                break; // Stop posting remaining tweets if an error occurs
+            }
+        }
+        
+        return tweetIds;
+    }
+
+    /**
+     * Splits a long piece of content into smaller chunks suitable for tweets
+     * Tries to split at sentence boundaries when possible
+     * 
+     * @param content The full content to split
+     * @param maxLength Maximum length for each chunk
+     * @param totalParts Optional - force content to be split into exactly this many parts
+     * @returns Array of content chunks ready to be tweeted
+     */
+ async splitContentForThread(
+        runtime: IAgentRuntime,
+        content: string, 
+        maxLength: number,
+        totalParts?: number
+    ): Promise<string[]> {
+        // If the content already fits in one tweet, return it as a single part
+        if (content.length <= maxLength && (!totalParts || totalParts <= 1)) {
+            return [content];
+        }
+
+        const threadPrompt = `Tweet: {${content}}
+        Here is a tweet. Create a Twitter thread with ${totalParts} tweets that:
+
+-In 1/ always include the link from the tweet and dont include the link in every thread, just the first thread
+-Explain its significance
+-Describe how it could affect us
+-Talk about benefits or positive effects on Earth
+-Output should be a JSON array of tweets
+-At the end of each thread dont mention 1/6, 2/6 just at start mention 1/, 2/
+
+example output: {
+        "tweets": ["1/ 🌥️ Did you know? Modern solar panels can now generate electricity even on cloudy days. This advancement marks a huge step forward for clean energy reliability.",
+    "2/ The ability to function in low-light conditions means solar energy can be harnessed more consistently—reducing our dependence on fossil fuels even in less sunny regions.",
+    "3/ This is a game-changer for urban areas and countries with frequent cloud cover. Solar power is no longer just for deserts—it's now for everyone, everywhere.",
+    "4/ On a global scale, this tech boosts our fight against climate change. More uptime = more clean energy = fewer emissions.",
+    "5/ As solar becomes more efficient and widespread, we inch closer to a sustainable, decentralized, and eco-friendly energy future. Bright days ahead—even when it’s cloudy. ☁️⚡"]}
+`;
+        
+        const threadTweets = await generateText({
+            runtime,
+            context: threadPrompt,
+            modelClass: ModelClass.MEDIUM,
+            stop: ["\n"]
+        });
+
+        elizaLogger.log(`Thread prompt: `, threadTweets);
+        console.log(threadTweets);
+
+        const threadTweetsString = threadTweets.toString();
+
+        // elizaLogger.log(`Thread tweets: ${threadTweetsString}`);
+
+        const match = threadTweetsString.match(/{[\s\S]*}/);
+
+        elizaLogger.log(`Matched JSON: ${String(match) as string}`);
+
+        const jsonContent = match[0];
+        const data = JSON.parse(jsonContent);
+
+        elizaLogger.log(`Parsed JSON: ${String(data) as string}`);
+
+        // Map the tweets to an array of strings using a for loop
+        const chunks: string[] = [];
+        for (let i = 0; i < data.tweets.length; i++) {
+            const tweet = data.tweets[i];
+            if (typeof tweet === 'string') {
+                chunks.push(tweet.trim());
+            }
+        }
+        
+        elizaLogger.log(`Split content into ${chunks.length} parts`);
+        elizaLogger.log(String(chunks) as string);
+        // if (totalParts && totalParts > 0) {
+        //     // If total parts is specified, try to divide content evenly
+        //     const avgChunkSize = Math.ceil(content.length / totalParts);
+            
+        //     let startPos = 0;
+        //     for (let i = 0; i < totalParts; i++) {
+        //         const isLastChunk = i === totalParts - 1;
+        //         if (isLastChunk) {
+        //             // For the last chunk, just take all remaining content
+        //             chunks.push(content.substring(startPos));
+        //         } else {
+        //             // Calculate end position for this chunk
+        //             let endPos = startPos + avgChunkSize;
+                    
+        //             // Try to find a good breaking point (end of sentence or paragraph)
+        //             let breakPos = this.findBreakPoint(content, endPos, startPos);
+                    
+        //             // Extract the chunk and add it to our array
+        //             const chunk = content.substring(startPos, breakPos).trim();
+        //             chunks.push(chunk);
+                    
+        //             // Update the start position for the next chunk
+        //             startPos = breakPos;
+        //         }
+        //     }
+        // } else {
+        //     // No specific part count requested, so split based on max length
+        //     let currentPos = 0;
+            
+        //     while (currentPos < content.length) {
+        //         // If remaining content fits in one tweet, add it and finish
+        //         if (content.length - currentPos <= maxLength) {
+        //             chunks.push(content.substring(currentPos));
+        //             break;
+        //         }
+                
+        //         // Find a good breaking point
+        //         let breakPos = this.findBreakPoint(content, currentPos + maxLength, currentPos);
+                
+        //         // Extract the chunk and add it to our array
+        //         const chunk = content.substring(currentPos, breakPos).trim();
+        //         chunks.push(chunk);
+                
+        //         // Move to the next chunk
+        //         currentPos = breakPos;
+        //     }
+        // }
+        
+        return chunks;
+    }
+    
+    /**
+     * Finds a good point to break text, preferring end of sentences or paragraphs
+     * 
+     * @param text The text to analyze
+     * @param targetPos The ideal position to break at
+     * @param startPos The starting position of the current chunk
+     * @returns The position to break the text
+     */
+    private findBreakPoint(text: string, targetPos: number, startPos: number): number {
+        // Make sure we don't go past the end of the text
+        const maxPos = Math.min(targetPos, text.length);
+        
+        // Look for paragraph breaks first (they're the cleanest breaks)
+        for (let i = maxPos; i > startPos + 10; i--) {
+            if (text[i] === '\n' && text[i-1] === '\n') {
+                return i + 1; // Position after the double newline
+            }
+        }
+        
+        // Look for sentence endings (.!?)
+        const sentenceEndRegex = /[.!?]\s/;
+        for (let i = maxPos; i > startPos + 10; i--) {
+            if (i < text.length - 1 && sentenceEndRegex.test(text.substring(i-1, i+1))) {
+                return i + 1; // Position after the sentence end and space
+            }
+        }
+        
+        // Look for other reasonable breaks like commas, semicolons, or single newlines
+        const otherBreakRegex = /[,;:]\s|\n/;
+        for (let i = maxPos; i > startPos + 10; i--) {
+            if (i < text.length - 1 && otherBreakRegex.test(text.substring(i-1, i+1))) {
+                return i + 1; // Position after the break character and space
+            }
+        }
+        
+        // If no good breaks found, look for any space
+        for (let i = maxPos; i > startPos + 10; i--) {
+            if (text[i] === ' ') {
+                return i + 1; // Position after the space
+            }
+        }
+        
+        // If we still haven't found a break point, just break at the max position
+        return maxPos;
+    }
+
+    /**
+     * Generates and posts a thread of tweets from a long piece of content.
+     * Creates a sequence of numbered tweets that form a coherent thread.
+     * 
+     * @param threadContent The full content to be split into a thread
+     * @param totalParts Optional - specify exactly how many tweets to split the content into
+     * @returns Array of tweet IDs in the thread
+     */
+    async generateTwitterThread(runtime: IAgentRuntime, threadContent: string, totalParts?: number): Promise<string[]> {
+        elizaLogger.log("Generating Twitter thread");
+
+        try {
+            const roomId = stringToUuid(
+                "twitter_thread_room-" + this.client.profile.username
+            );
+            
+            await this.runtime.ensureUserExists(
+                this.runtime.agentId,
+                this.client.profile.username,
+                this.runtime.character.name,
+                "twitter"
+            );
+            
+            if (this.isDryRun) {
+                // Just log what would have been posted
+                const parts = await this.splitContentForThread(runtime,
+                    threadContent, 
+                    this.client.twitterConfig.MAX_TWEET_LENGTH - 10,
+                    totalParts
+                );
+                
+                elizaLogger.info(`Dry run: would have posted Twitter thread with ${parts.length} tweets`);
+                parts.forEach((part, i) => {
+                    elizaLogger.info(`Tweet ${i+1}/${parts.length}: ${part}`);
+                });
+                
+                return [];
+            } else if (this.approvalRequired) {
+                // For now, send the entire thread for approval as one unit
+                elizaLogger.log("Sending thread for approval");
+                const threadPreview = threadContent.substring(0, 500) + 
+                    (threadContent.length > 500 ? "..." : "") + 
+                    `\n\n[Will be posted as a thread of approximately ${totalParts || Math.ceil(threadContent.length / 240)} tweets]`;
+                
+                await this.sendForApproval(threadPreview, roomId, threadContent);
+                elizaLogger.log("Thread sent for approval");
+                return [];
+            } else {
+                // Post the thread directly
+                return await this.createTwitterThread(this.runtime, threadContent, roomId, totalParts);
+            }
+        } catch (error) {
+            elizaLogger.error("Error generating Twitter thread:", String(error) as string);
+            return [];
+        }
+    }
 
     async handleNoteTweet(
         client: ClientBase,
@@ -913,6 +1238,8 @@ Tweet: ${tweetTextForPosting}
 
             let result;
 
+            const thread = true;
+            if (!thread) {
             if (tweetTextForPosting.length > DEFAULT_MAX_TWEET_LENGTH) {
                 result = await this.handleNoteTweet(
                     client,
@@ -937,14 +1264,18 @@ Tweet: ${tweetTextForPosting}
             
             // Update the tweet text to match the final version that was posted
             tweet.text = tweetTextForPosting;
-
-            await this.processAndCacheTweet(
-                runtime,
-                client,
-                tweet,
-                roomId,
-                tweetTextForPosting // Use the modified tweet text as the raw content
-            );
+           
+                await this.processAndCacheTweet(
+                    runtime,
+                    client,
+                    tweet,
+                    roomId,
+                    tweetTextForPosting // Use the modified tweet text as the raw content
+                );
+            }
+            else {
+                this.generateTwitterThread(runtime, String(tweetTextForPosting) as string, 6);
+            }
         } catch (error) {
             elizaLogger.error("Error sending tweet:", error as string);
         }
