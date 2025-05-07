@@ -1,82 +1,304 @@
 {
     "news": [
         {
-            "title": "US Army Corps Targets Fall Decision for Enbridge Line 5 Tunnel",
+            "title": "Justice Department Sues States Over Climate Actions",
             "date": "2025-05-02",
             "location": "United States",
-            "summary": "The U.S. Army Corps of Engineers announced plans to decide by fall 2025 on granting a permit for Enbridge's proposed Great Lakes tunnel for its Line 5 oil pipeline. The project, facing opposition from Native American tribes and environmental groups, aims to build a tunnel beneath the Straits of Mackinac to house the aging pipeline.",
-            "url": "https://www.reuters.com/business/energy/us-army-corps-targeting-fall-decision-enbridge-line-5-tunnel-2025-05-02/",
+            "summary": "The U.S. Department of Justice has filed lawsuits against Hawaii, Michigan, New York, and Vermont, claiming their state-level climate initiatives conflict with federal authority and the administration's energy agenda.",
+            "url": "https://apnews.com/article/a5228e1dd6348f09d2a70f460142531a",
             "event_type": "policy",
-            "emotion_score": {
-                "Rage": 0.6,
-                "Hope": 0.4,
-                "Fear": 0.5
-            }
+            "emotions": [
+                {
+                    "emotion": "neutral",
+                    "score": 0.9999902248382568
+                },
+                {
+                    "emotion": "approval",
+                    "score": 1.4794603657719563e-06
+                },
+                {
+                    "emotion": "annoyance",
+                    "score": 1.4654461892860127e-06
+                },
+                {
+                    "emotion": "disapproval",
+                    "score": 9.493601282883901e-07
+                },
+                {
+                    "emotion": "realization",
+                    "score": 6.853313152532792e-07
+                }
+            ]
         },
         {
-            "title": "White House Unveils Trump's 2026 Proposed Budget",
-            "date": "2025-05-02",
+            "title": "EPA Reports Increased Enforcement Under Biden Administration",
+            "date": "2024-12-15",
             "location": "United States",
-            "summary": "President Donald Trump's proposed 2026 budget prioritizes increased national security spending while slashing $163 billion in non-defense domestic programs, including cuts to climate initiatives and diversity programs. Concerns have been raised over funding reductions to public broadcasters and efforts to eliminate school desegregation orders.",
-            "url": "https://apnews.com/article/962424454ca035b4a74e80a0e4dfd936",
+            "summary": "The Environmental Protection Agency announced a significant rise in enforcement activities, including over 1,850 civil cases and 121 criminal charges in 2024, with penalties totaling $1.7 billion.",
+            "url": "https://apnews.com/article/75c7997b101632d4666d879772261fd8",
             "event_type": "policy",
-            "emotion_score": {
-                "Rage": 0.7,
-                "Hope": 0.2,
-                "Fear": 0.6
-            }
+            "emotions": [
+                {
+                    "emotion": "neutral",
+                    "score": 0.7389307022094727
+                },
+                {
+                    "emotion": "approval",
+                    "score": 0.15927021205425262
+                },
+                {
+                    "emotion": "realization",
+                    "score": 0.048520468175411224
+                },
+                {
+                    "emotion": "optimism",
+                    "score": 0.037383705377578735
+                },
+                {
+                    "emotion": "pride",
+                    "score": 0.003098071552813053
+                }
+            ]
         },
         {
-            "title": "2025 May Day Protests Held Across United States",
-            "date": "2025-05-01",
+            "title": "Trump Administration Rolls Back Climate Initiatives",
+            "date": "2025-02-27",
             "location": "United States",
-            "summary": "On May 1, 2025, over 1,000 protests were organized across the United States as part of the 50501 movement. Demonstrators opposed the Trump administration and its billionaire backers, accusing them of rolling back labor rights and targeting immigrants. The protests followed a series of related demonstrations earlier in the year.",
-            "url": "https://en.wikipedia.org/wiki/2025_May_Day_protests",
-            "event_type": "activism",
-            "emotion_score": {
-                "Rage": 0.5,
-                "Hope": 0.6,
-                "Fear": 0.3
-            }
+            "summary": "Following President Trump's election, his administration has withdrawn from the Paris Agreement and canceled international climate partnerships, raising concerns about the future of U.S. climate action.",
+            "url": "https://www.reuters.com/sustainability/boards-policy-regulation/analysis-trump-slashes-climate-action-can-states-cities-pick-up-slack-2025-02-27/",
+            "event_type": "policy",
+            "emotions": [
+                {
+                    "emotion": "realization",
+                    "score": 0.9926255345344543
+                },
+                {
+                    "emotion": "disappointment",
+                    "score": 0.002608850132673979
+                },
+                {
+                    "emotion": "neutral",
+                    "score": 0.0011886477004736662
+                },
+                {
+                    "emotion": "nervousness",
+                    "score": 0.0004239561967551708
+                },
+                {
+                    "emotion": "confusion",
+                    "score": 0.0003954415151383728
+                }
+            ]
         },
         {
-            "title": "Alberta Government Lifts Ban on Coal Exploration in Eastern Slopes",
-            "date": "2025-01-20",
+            "title": "Canada Commits to Nature Accountability Bill",
+            "date": "2023-12-09",
             "location": "Canada",
-            "summary": "In January 2025, Alberta's Energy and Minerals Minister Brian Jean lifted the moratorium on coal exploration and development in the Eastern Slopes of the Rocky Mountains. The decision, made without public consultation, opened approximately 190,000 hectares of environmentally sensitive land to potential coal projects, sparking strong opposition from environmental groups and First Nations.",
-            "url": "https://en.wikipedia.org/wiki/Alberta_coal_policy_controversy",
+            "summary": "At COP28, Canada announced plans to introduce a federal nature accountability bill in 2024 to establish a framework for fulfilling its biodiversity commitments under the Global Biodiversity Framework.",
+            "url": "https://www.canada.ca/en/environment-climate-change/news/2023/12/government-of-canada-takes-action-to-restore-and-protect-nature-with-commitment-to-introduce-a-nature-accountability-bill-in-2024.html",
             "event_type": "policy",
-            "emotion_score": {
-                "Rage": 0.8,
-                "Hope": 0.2,
-                "Fear": 0.7
-            }
+            "emotions": [
+                {
+                    "emotion": "neutral",
+                    "score": 0.9946326017379761
+                },
+                {
+                    "emotion": "approval",
+                    "score": 0.004945787135511637
+                },
+                {
+                    "emotion": "realization",
+                    "score": 0.0002402934042038396
+                },
+                {
+                    "emotion": "optimism",
+                    "score": 4.698010889114812e-05
+                },
+                {
+                    "emotion": "desire",
+                    "score": 1.532271198811941e-05
+                }
+            ]
         },
         {
-            "title": "Tornado Outbreak and Floods Devastate Southern and Midwestern US",
-            "date": "2025-04-07",
-            "location": "United States",
-            "summary": "Between April 2–7, 2025, a slow-moving weather system caused a widespread tornado outbreak and historic flash flooding across the Southern and Midwestern United States. The event resulted in 24 fatalities, including nine from tornadoes and 15 from flooding, with at least 47 injuries reported.",
-            "url": "https://en.wikipedia.org/wiki/Tornado_outbreak_and_floods_of_April_2%E2%80%937%2C_2025",
-            "event_type": "disaster",
-            "emotion_score": {
-                "Rage": 0.3,
-                "Hope": 0.1,
-                "Fear": 0.9
-            }
+            "title": "Canada Unveils 2030 Nature Strategy",
+            "date": "2024-06-13",
+            "location": "Canada",
+            "summary": "The Canadian government released its 2030 Nature Strategy and introduced a Nature Accountability Bill to implement ambitious nature protection goals agreed upon at COP15.",
+            "url": "https://www.canada.ca/en/environment-climate-change/news/2024/06/national-strategy-to-protect-nature-in-canada-unveiled-alongside-bill-to-ensure-accountability.html",
+            "event_type": "policy",
+            "emotions": [
+                {
+                    "emotion": "neutral",
+                    "score": 0.9928036332130432
+                },
+                {
+                    "emotion": "realization",
+                    "score": 0.0037072133272886276
+                },
+                {
+                    "emotion": "approval",
+                    "score": 0.003006873419508338
+                },
+                {
+                    "emotion": "optimism",
+                    "score": 0.00012362557754386216
+                },
+                {
+                    "emotion": "admiration",
+                    "score": 3.8304104236885905e-05
+                }
+            ]
         },
         {
-            "title": "Stand Up for Science 2025 Rallies Held Across US and France",
-            "date": "2025-03-07",
-            "location": "United States and France",
-            "summary": "On March 7, 2025, scientists and supporters held demonstrations in over 30 U.S. cities and multiple locations in France to protest policy changes under the Trump administration affecting scientific research. The rallies aimed to oppose freezes on scientific grants, dismissals of government scientists, and cuts to diversity initiatives.",
-            "url": "https://en.wikipedia.org/wiki/Stand_Up_for_Science_2025",
+            "title": "Environmental Groups Sue Canada Over Spotted Owl Protection",
+            "date": "2023-06-08",
+            "location": "Canada",
+            "summary": "Activists have taken Canada's environment minister to court, demanding an emergency order to halt logging in British Columbia to protect the critically endangered northern spotted owl.",
+            "url": "https://www.theguardian.com/environment/2023/jun/08/activists-take-canadas-environment-minister-to-court-in-fight-to-save-northern-spotted-owl-aoe",
             "event_type": "activism",
-            "emotion_score": {
-                "Rage": 0.6,
-                "Hope": 0.7,
-                "Fear": 0.4
-            }
+            "emotions": [
+                {
+                    "emotion": "anger",
+                    "score": 0.8053832054138184
+                },
+                {
+                    "emotion": "neutral",
+                    "score": 0.1407468318939209
+                },
+                {
+                    "emotion": "annoyance",
+                    "score": 0.03844118118286133
+                },
+                {
+                    "emotion": "caring",
+                    "score": 0.0029506743885576725
+                },
+                {
+                    "emotion": "disapproval",
+                    "score": 0.002098006196320057
+                }
+            ]
+        },
+        {
+            "title": "Indigenous Guardians Protect Canada's Environment",
+            "date": "2023-08-10",
+            "location": "Canada",
+            "summary": "Indigenous Guardians across Canada are stewarding their traditional lands and waters, effectively conserving biodiversity and combating climate change through traditional knowledge and practices.",
+            "url": "https://www.bbc.com/future/article/20230809-how-indigenous-guardians-are-protecting-canadas-environment",
+            "event_type": "activism",
+            "emotions": [
+                {
+                    "emotion": "neutral",
+                    "score": 0.9954054355621338
+                },
+                {
+                    "emotion": "approval",
+                    "score": 0.004334600642323494
+                },
+                {
+                    "emotion": "caring",
+                    "score": 0.00011610773071879521
+                },
+                {
+                    "emotion": "realization",
+                    "score": 3.40205297106877e-05
+                },
+                {
+                    "emotion": "optimism",
+                    "score": 1.337903449893929e-05
+                }
+            ]
+        },
+        {
+            "title": "Canada Invests in Bruce Trail Conservation",
+            "date": "2024-11-13",
+            "location": "Canada",
+            "summary": "The Canadian government announced an additional $2.4 million funding to the Bruce Trail Conservancy to protect over 300 hectares of habitat along the Niagara Escarpment, aiding in climate change mitigation and biodiversity preservation.",
+            "url": "https://www.canada.ca/en/environment-climate-change/news/2024/11/protecting-nature-along-the-bruce-trail-to-help-fight-climate-change-and-reverse-biodiversity-loss.html",
+            "event_type": "policy",
+            "emotions": [
+                {
+                    "emotion": "neutral",
+                    "score": 0.9958571791648865
+                },
+                {
+                    "emotion": "approval",
+                    "score": 0.0034309723414480686
+                },
+                {
+                    "emotion": "realization",
+                    "score": 0.00032173097133636475
+                },
+                {
+                    "emotion": "optimism",
+                    "score": 0.00011487556184874848
+                },
+                {
+                    "emotion": "curiosity",
+                    "score": 3.466889393166639e-05
+                }
+            ]
+        },
+        {
+            "title": "Amy Bowers Cordalis Leads Klamath River Restoration",
+            "date": "2024-12-20",
+            "location": "United States",
+            "summary": "Attorney and Yurok Tribe member Amy Bowers Cordalis played a key role in the removal of four hydroelectric dams on California's Klamath River, marking the largest river restoration project in U.S. history.",
+            "url": "https://time.com/7172485/amy-bowers-cordalis/",
+            "event_type": "activism",
+            "emotions": [
+                {
+                    "emotion": "neutral",
+                    "score": 0.9965971112251282
+                },
+                {
+                    "emotion": "admiration",
+                    "score": 0.002802688628435135
+                },
+                {
+                    "emotion": "approval",
+                    "score": 0.0002379230281803757
+                },
+                {
+                    "emotion": "realization",
+                    "score": 9.879788558464497e-05
+                },
+                {
+                    "emotion": "pride",
+                    "score": 4.086255648871884e-05
+                }
+            ]
+        },
+        {
+            "title": "Jad Daley Advocates for Climate-Focused Forestry",
+            "date": "2024-12-20",
+            "location": "United States",
+            "summary": "Under Jad Daley's leadership, American Forests has secured $14 billion for climate-related forest investments, emphasizing the role of forests in combating climate change and promoting a resilient economy.",
+            "url": "https://time.com/7172495/jad-daley/",
+            "event_type": "activism",
+            "emotions": [
+                {
+                    "emotion": "neutral",
+                    "score": 0.9855865240097046
+                },
+                {
+                    "emotion": "approval",
+                    "score": 0.008526718243956566
+                },
+                {
+                    "emotion": "admiration",
+                    "score": 0.0022710314951837063
+                },
+                {
+                    "emotion": "optimism",
+                    "score": 0.0020722730550915003
+                },
+                {
+                    "emotion": "realization",
+                    "score": 0.0009786045411601663
+                }
+            ]
         }
     ]
 }

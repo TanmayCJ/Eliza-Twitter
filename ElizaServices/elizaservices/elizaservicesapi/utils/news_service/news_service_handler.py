@@ -4,6 +4,8 @@ import re
 import textwrap
 import time
 from django.conf import settings
+from ..text_emotion_service.text_emotion_service_handler import TextEmotionService
+from ..personality_service.personality_service_handler import PersonalityServiceHandler
 
 class NewsService:
     def __init__(self, api_key, countries=None, max_retries=1, retry_delay=1.0):
@@ -16,6 +18,8 @@ class NewsService:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}"
         }
+        self.text_emotion_service = TextEmotionService()
+        self.personality_service = PersonalityServiceHandler()
 
     def fetch_environmental_news(self):
         user_prompt = textwrap.dedent(f"""
@@ -34,7 +38,6 @@ class NewsService:
             - "summary": 2–3 sentence explanation of the news.
             - "url": A direct link to the news source.
             - "event_type": Classify the news type — examples: "disaster", "hypocrisy", "small win", "corporate scandal", "activism", "policy".
-            - "emotion_score": Assign emotion scores as a dictionary — e.g., {{ "Rage": 0.8, "Hope": 0.3, "Fear": 0.1 }} based on the emotional tone of the article.
 
             Return a JSON object strictly in this format:
             {{
@@ -45,12 +48,7 @@ class NewsService:
                   "location": "...",
                   "summary": "...",
                   "url": "https://...",
-                  "event_type": "...",
-                  "emotion_score": {{
-                    "Rage": 0.x,
-                    "Hope": 0.x,
-                    "Fear": 0.x
-                  }}
+                  "event_type": "..."
                 }}
               ]
             }}
@@ -105,6 +103,19 @@ class NewsService:
                 clean_json_str = match.group(1) if match else raw_output_text
 
                 news_data = json.loads(clean_json_str)
+                
+                # Add emotion and personality analysis for each news item
+                for news_item in news_data.get('news', []):
+                    summary = news_item.get('summary', '')
+                    if summary:
+                        # Get emotion analysis
+                        emotion_analysis = self.text_emotion_service.analyze_emotions(summary, top_k=5)
+                        news_item['emotions'] = emotion_analysis['emotions']
+                        
+                        # Get personality analysis based on emotions
+                        personality_analysis = self.personality_service.analyze_personality(emotion_analysis['emotions'])
+                        news_item['matched_personality'] = personality_analysis['matched_personality']
+                
                 return news_data
 
             except json.JSONDecodeError:

@@ -12,16 +12,21 @@ from .utils.caption_service import CaptionService
 from .utils.popularity_service import PopularityAPI
 from .utils.safety_service import SafetyService
 from .utils.news_service import NewsService
+from .utils.imagegen_service import ImageGenServiceHandler
+from .utils.text_emotion_service import TextEmotionService
+from .utils.personality_service import PersonalityServiceHandler
+from .utils.twitter_trends_service import TwitterTrendsService
 from .models import CarbonTruthTweet, CarbonRantTweet, DefaultTweet, CarbonSustainAITweet
 from .serializers import (
     CarbonTruthTweetSerializer, CarbonRantTweetSerializer,
     DefaultTweetSerializer, CarbonSustainAITweetSerializer
 )
-from .utils.twitter_trends_service.twitter_trends_handler import TwitterTrendsService
 
 caption_service = CaptionService()
 popularity_service = PopularityAPI()
 safety_service = SafetyService()
+text_emotion_service = TextEmotionService()
+personality_service = PersonalityServiceHandler()
 twitter_trends_service = TwitterTrendsService()
 
 SENDER_MODEL_MAP = {
@@ -170,29 +175,59 @@ class ValidSendersView(APIView):
     def get(self, request):
         return Response(list(SENDER_MODEL_MAP.keys()), status=status.HTTP_200_OK)
 
+class ImageGenView(APIView):
+    def post(self, request):
+        keyword = request.data.get("keyword", "")
+        if not keyword:
+            return Response({"error": "Keyword is required."}, status=status.HTTP_400_BAD_REQUEST)
+        imagegen_handler = ImageGenServiceHandler()
+        image_url = imagegen_handler.fetch_image(keyword)
+        return Response({"image_url": image_url})
+
+class PersonalityAnalysisView(APIView):
+    def post(self, request):
+        emotions = request.data.get("emotions", [])
+        
+        if not emotions:
+            return Response(
+                {"error": "Emotions data is required."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            result = personality_service.analyze_personality(emotions)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 class TwitterTrendsView(APIView):
     def get(self, request):
-        selected_index = request.query_params.get('index', 0)
+        selected_index = request.query_params.get('timeframe_index', 0)
         try:
             selected_index = int(selected_index)
             result = twitter_trends_service.get_trends(selected_index)
-            if 'error' in result:
-                return Response(result, status=status.HTTP_400_BAD_REQUEST)
-            return Response(result)
+            return Response(result, status=status.HTTP_200_OK)
         except ValueError:
-            return Response({"error": "Index must be an integer"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid timeframe index. Must be a number."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def post(self, request):
-        selected_index = request.data.get('index', 0)
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class TwitterTrendsTimeframesView(APIView):
+    def get(self, request):
         try:
-            selected_index = int(selected_index)
-            result = twitter_trends_service.get_trends(selected_index)
-            if 'error' in result:
-                return Response(result, status=status.HTTP_400_BAD_REQUEST)
-            return Response(result)
-        except ValueError:
-            return Response({"error": "Index must be an integer"}, status=status.HTTP_400_BAD_REQUEST)
+            timeframes = twitter_trends_service.get_timeframes()
+            return Response(timeframes, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
