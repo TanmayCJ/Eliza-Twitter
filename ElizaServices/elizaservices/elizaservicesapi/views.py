@@ -17,8 +17,8 @@ from .serializers import (
     CarbonTruthTweetSerializer, CarbonRantTweetSerializer,
     DefaultTweetSerializer, CarbonSustainAITweetSerializer
 )
-from .utils.imagegen_service.imagegen_service_handler import ImageGenServiceHandler
-from .utils.text_emotion_service.text_emotion_service import TextEmotionService
+from .utils.imagegen_service import ImageGenServiceHandler
+from .utils.text_emotion_service import TextEmotionService
 
 caption_service = CaptionService()
 popularity_service = PopularityAPI()

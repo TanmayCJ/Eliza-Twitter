@@ -7,7 +7,6 @@ from django.conf import settings
 
 class NewsService:
     def __init__(self, api_key, countries=None, max_retries=1, retry_delay=1.0):
-        
         self.api_key = settings.OPENAI_API_KEY
         self.countries = countries or ["US", "CA"]
         self.max_retries = max_retries
@@ -28,7 +27,16 @@ class NewsService:
 
             STRICTLY include only news from these countries: {', '.join(self.countries)}.
 
-            Return a JSON object in this format:
+            For each news article, include the following fields:
+            - "title": A short, clear headline.
+            - "date": Date in YYYY-MM-DD format.
+            - "location": Where the news took place.
+            - "summary": 2–3 sentence explanation of the news.
+            - "url": A direct link to the news source.
+            - "event_type": Classify the news type — examples: "disaster", "hypocrisy", "small win", "corporate scandal", "activism", "policy".
+            - "emotion_score": Assign emotion scores as a dictionary — e.g., {{ "Rage": 0.8, "Hope": 0.3, "Fear": 0.1 }} based on the emotional tone of the article.
+
+            Return a JSON object strictly in this format:
             {{
               "news": [
                 {{
@@ -36,7 +44,13 @@ class NewsService:
                   "date": "YYYY-MM-DD",
                   "location": "...",
                   "summary": "...",
-                  "url": "https://..."
+                  "url": "https://...",
+                  "event_type": "...",
+                  "emotion_score": {{
+                    "Rage": 0.x,
+                    "Hope": 0.x,
+                    "Fear": 0.x
+                  }}
                 }}
               ]
             }}
