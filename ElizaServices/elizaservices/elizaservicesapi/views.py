@@ -11,15 +11,19 @@ from rest_framework import status
 from .utils.caption_service import CaptionService
 from .utils.popularity_service import PopularityAPI
 from .utils.safety_service import SafetyService
+from .utils.news_service import NewsService
 from .models import CarbonTruthTweet, CarbonRantTweet, DefaultTweet, CarbonSustainAITweet
 from .serializers import (
     CarbonTruthTweetSerializer, CarbonRantTweetSerializer,
     DefaultTweetSerializer, CarbonSustainAITweetSerializer
 )
+from .utils.imagegen_service.imagegen_service_handler import ImageGenServiceHandler
+from .utils.text_emotion_service.text_emotion_service import TextEmotionService
 
 caption_service = CaptionService()
 popularity_service = PopularityAPI()
 safety_service = SafetyService()
+text_emotion_service = TextEmotionService()
 
 SENDER_MODEL_MAP = {
     'carbontruth': (CarbonTruthTweet, CarbonTruthTweetSerializer),
@@ -95,6 +99,16 @@ class SafetyScoreView(APIView):
 
         return Response(response_data)
 
+class EnvironmentalNewsView(APIView):
+    def get(self, request):
+        countries = request.query_params.getlist("country") or ["US", "CA"]
+        try:
+            news_service = NewsService(countries)
+            news_data = news_service.fetch_environmental_news()
+            return Response(news_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class TweetsView(APIView):
     def get(self, request):
         sender = request.query_params.get('sender', '').lower()
@@ -156,3 +170,32 @@ class SingleTweetView(APIView):
 class ValidSendersView(APIView):
     def get(self, request):
         return Response(list(SENDER_MODEL_MAP.keys()), status=status.HTTP_200_OK)
+
+class ImageGenView(APIView):
+    def post(self, request):
+        keyword = request.data.get("keyword", "")
+        if not keyword:
+            return Response({"error": "Keyword is required."}, status=status.HTTP_400_BAD_REQUEST)
+        imagegen_handler = ImageGenServiceHandler()
+        image_url = imagegen_handler.fetch_image(keyword)
+        return Response({"image_url": image_url})
+
+class TextEmotionView(APIView):
+    def post(self, request):
+        text = request.data.get("text", "")
+        top_k = request.data.get("top_k", 5)
+        
+        if not text:
+            return Response(
+                {"error": "Text is required."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            result = text_emotion_service.analyze_emotions(text, top_k)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

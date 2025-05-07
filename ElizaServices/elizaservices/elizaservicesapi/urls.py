@@ -6,7 +6,10 @@ from .views import (
     TweetsView,
     LatestTweetView,
     SingleTweetView,
-    ValidSendersView
+    ValidSendersView,
+    EnvironmentalNewsView,
+    ImageGenView,
+    TextEmotionView
 )
 
 urlpatterns = [
@@ -17,4 +20,7 @@ urlpatterns = [
     path('tweets/latest/', LatestTweetView.as_view(), name='latest-tweet'),
     path('tweets/senders/', ValidSendersView.as_view(), name='valid-senders'),
     path('tweets/<str:tweet_id>/', SingleTweetView.as_view(), name='tweet-detail'),
+    path('news/', EnvironmentalNewsView.as_view(), name='environmental-news'),
+    path('imagegen/', ImageGenView.as_view(), name='imagegen'),
+    path('text-emotion/', TextEmotionView.as_view(), name='text-emotion'),
 ]
