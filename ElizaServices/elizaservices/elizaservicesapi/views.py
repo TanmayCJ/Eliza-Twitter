@@ -17,21 +17,12 @@ from .serializers import (
     CarbonTruthTweetSerializer, CarbonRantTweetSerializer,
     DefaultTweetSerializer, CarbonSustainAITweetSerializer
 )
-<<<<<<< HEAD
 from .utils.twitter_trends_service.twitter_trends_handler import TwitterTrendsService
-=======
-from .utils.imagegen_service import ImageGenServiceHandler
-from .utils.text_emotion_service import TextEmotionService
->>>>>>> 1207268b3aa5a6d6a44afa8286eaed28487576df
 
 caption_service = CaptionService()
 popularity_service = PopularityAPI()
 safety_service = SafetyService()
-<<<<<<< HEAD
 twitter_trends_service = TwitterTrendsService()
-=======
-text_emotion_service = TextEmotionService()
->>>>>>> 1207268b3aa5a6d6a44afa8286eaed28487576df
 
 SENDER_MODEL_MAP = {
     'carbontruth': (CarbonTruthTweet, CarbonTruthTweetSerializer),
@@ -179,7 +170,6 @@ class ValidSendersView(APIView):
     def get(self, request):
         return Response(list(SENDER_MODEL_MAP.keys()), status=status.HTTP_200_OK)
 
-<<<<<<< HEAD
 class TwitterTrendsView(APIView):
     def get(self, request):
         selected_index = request.query_params.get('index', 0)
@@ -193,41 +183,16 @@ class TwitterTrendsView(APIView):
             return Response({"error": "Index must be an integer"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-class TwitterTimeframesView(APIView):
-    def get(self, request):
+    
+    def post(self, request):
+        selected_index = request.data.get('index', 0)
         try:
-            timeframes = twitter_trends_service.get_timeframes()
-            return Response({"timeframes": timeframes})
+            selected_index = int(selected_index)
+            result = twitter_trends_service.get_trends(selected_index)
+            if 'error' in result:
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            return Response(result)
+        except ValueError:
+            return Response({"error": "Index must be an integer"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-=======
-class ImageGenView(APIView):
-    def post(self, request):
-        keyword = request.data.get("keyword", "")
-        if not keyword:
-            return Response({"error": "Keyword is required."}, status=status.HTTP_400_BAD_REQUEST)
-        imagegen_handler = ImageGenServiceHandler()
-        image_url = imagegen_handler.fetch_image(keyword)
-        return Response({"image_url": image_url})
-
-class TextEmotionView(APIView):
-    def post(self, request):
-        text = request.data.get("text", "")
-        top_k = request.data.get("top_k", 5)
-        
-        if not text:
-            return Response(
-                {"error": "Text is required."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        try:
-            result = text_emotion_service.analyze_emotions(text, top_k)
-            return Response(result, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
->>>>>>> 1207268b3aa5a6d6a44afa8286eaed28487576df
