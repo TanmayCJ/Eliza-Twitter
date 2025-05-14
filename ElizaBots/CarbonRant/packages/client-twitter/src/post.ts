@@ -22,6 +22,7 @@ import { buildConversationThread, fetchMediaData } from "./utils.ts";
 import { twitterMessageHandlerTemplate } from "./interactions.ts";
 import { DEFAULT_MAX_TWEET_LENGTH } from "./environment.ts";
 import { formatHandle, getRecommendedTags, isTaggingEnabled } from "./mentions.ts";
+import { getRandomPersonality, type PersonalityConfig } from "./personality.ts";
    
 import {
     Client,
@@ -53,11 +54,17 @@ const twitterPostTemplate = `
 
 {{postDirections}}
 
-# Task: Generate a tweet in the voice and style of {{agentName}} @{{twitterUserName}}.
-Write a post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}.
+# Current Tweeting Personality: {{personalityName}}
+{{personalityDescription}}
+
+# Task: Generate a tweet in the voice and style of {{agentName}} @{{twitterUserName}} with influence from {{personalityName}}.
+Write a post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}} influenced by {{personalityName}}'s style.
 
 Constraints:
 - Write either 1 or 2 sentences (choose randomly).
+{{#if isPoetic}}
+- Write this tweet as a short climate-related poem or rhyme (like a haiku or limerick).
+{{/if}}
 - Maximum total character count: 160.
 - Add 1–2 hashtags.
 - Hashtag placement must vary: sometimes at the start, but mostly at the end.
@@ -67,6 +74,7 @@ Constraints:
 
 Just output the tweet, nothing else.
 `;
+
 
 
 export const twitterActionTemplate =
@@ -1014,8 +1022,7 @@ export class TwitterPostClient {
 
     /**
      * Generates a new tweet, sends it for verification if required, or posts it directly
-     */
-    async generateNewTweet() {
+     */    async generateNewTweet() {
         elizaLogger.log("Generating new tweet");
 
         try {
@@ -1027,7 +1034,15 @@ export class TwitterPostClient {
                 this.client.profile.username,
                 this.runtime.character.name,
                 "twitter"
-            );
+            );            // Select a random personality based on the configured percentages
+            const selectedPersonality = getRandomPersonality();
+            elizaLogger.log(`Using personality: ${selectedPersonality.name} (${selectedPersonality.percentage}%)`);
+            
+            // Determine if this tweet should be poetic (10% chance)
+            const isPoetic = Math.random() < 0.10;
+            if (isPoetic) {
+                elizaLogger.log(`This tweet will be generated as a poetic rhyme (10% feature)`);
+            }
 
             const topics = this.runtime.character.topics.join(", ");
             const maxTweetLength = this.client.twitterConfig.MAX_TWEET_LENGTH;
@@ -1044,6 +1059,9 @@ export class TwitterPostClient {
                 {
                     twitterUserName: this.client.profile.username,
                     maxTweetLength,
+                    personalityName: selectedPersonality.name,
+                    personalityDescription: selectedPersonality.description,
+                    isPoetic: isPoetic
                 }
             );
 
@@ -1151,7 +1169,7 @@ export class TwitterPostClient {
                 image = result.image;
                 imageContext = result.imageContext;
             } catch (error) {
-                elizaLogger.warn("Failed to generate image for tweet, continuing without image:", error);
+                elizaLogger.warn("Image for the following keywords are not defined", error);
                 image = null;
                 imageContext = null;
             }
@@ -1436,6 +1454,12 @@ export class TwitterPostClient {
         for (const timeline of timelines) {
             const { actionResponse, tweetState, roomId, tweet } = timeline;
             try {
+                // Skip tweets that don't have a valid ID
+                if (!tweet || !tweet.id) {
+                    elizaLogger.error("Tweet with missing ID detected, skipping processing");
+                    continue;
+                }
+                
                 const executedActions: string[] = [];
                 // Execute actions
                 if (actionResponse.like) {
@@ -1698,6 +1722,12 @@ export class TwitterPostClient {
         executedActions: string[]
     ) {
         try {
+            // Validate the tweet and its ID before proceeding
+            if (!tweet || !tweet.id) {
+                elizaLogger.error("Cannot handle reply for tweet with missing ID");
+                return;
+            }
+            
             // Build conversation thread for context
             const thread = await buildConversationThread(tweet, this.client);
             const formattedConversation = thread
