@@ -360,4 +360,23 @@ Write a concise, data-driven tweet with seamless brand integration:
 def get_forced_branded_tweet(fact_content, context_content):
     """Generate a tweet that always includes the brand name"""
     generator = ForcedBrandedTweetGenerator()
-    return generator.generate_tweet(fact_content, context_content) 
+    tweet = generator.generate_tweet(fact_content, context_content)
+    
+    # Double-check that URLs are included
+    if fact_content and not any(url in tweet for url in ['http://', 'https://']):
+        url_processor = URLProcessor()
+        _, fact_urls = url_processor.extract_urls(fact_content)
+        _, context_urls = url_processor.extract_urls(context_content)
+        all_urls = fact_urls + context_urls
+        
+        if all_urls:
+            # Extract any URLs that might already be in the tweet
+            tweet_text, existing_urls = url_processor.extract_urls(tweet)
+            # Add any URLs from the input content that aren't already in the tweet
+            for url in all_urls:
+                if url not in existing_urls:
+                    existing_urls.append(url)
+            # Reappend all URLs to ensure they're included
+            tweet = url_processor.append_urls_to_text(tweet_text, existing_urls, 240)
+    
+    return tweet 

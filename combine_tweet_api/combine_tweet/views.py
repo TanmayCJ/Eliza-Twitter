@@ -2,12 +2,24 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from combine_tweet.services.db_manager import DatabaseManager
-from combine_tweet.services.tweet_generator import TweetGenerator
+# Remove or comment out the old TweetGenerator import
+# from combine_tweet.services.tweet_generator import TweetGenerator
+# Import the new TweetLLM class (adjust the path based on your project structure)
+# Assuming 'new' is a top-level package
+from combine_tweet.services.openai_inference import TweetLLM
 from combine_tweet.services.branded_tweet_generator import BrandedTweetGenerator, get_branded_tweet
 from combine_tweet.services.forced_branded_tweet_generator import get_forced_branded_tweet
+from combine_tweet.services.url_processor import URLProcessor
 
-generator = TweetGenerator()
+# Removed the old TweetGenerator instance
+# generator = TweetGenerator()
 branded_generator = BrandedTweetGenerator()
+
+# Instantiate the new TweetLLM
+llm_generator = TweetLLM()
+
+# Instantiate URLProcessor
+url_processor = URLProcessor()
 
 @api_view(['GET'])
 def home(request):
@@ -25,11 +37,32 @@ def generate_combined(request):
     carbon_content = entries['carbon_tweet']['content'] or ""
     rant_content = entries['rant_tweet']['content'] or ""
     print("truth tweet\n",carbon_content,"\n\nrant tweet\n\n" ,rant_content)
-    tweet = generator.generate_combined_tweet(carbon_content, rant_content)
-    print(" the combines tweet is ", "\n\n\n",tweet)
+
+    # Use the new llm_generator and call its 'generate' method
+    tweet = llm_generator.generate(factual_tweet=carbon_content, rant_tweet=rant_content)
+    print(" the combines tweet is before url processing", "\n\n\n",tweet)
+
+    # --- Force URL Appending ---
+    # Extract URLs from source content
+    _, carbon_urls = url_processor.extract_urls(carbon_content)
+    _, rant_urls = url_processor.extract_urls(rant_content)
+    all_source_urls = carbon_urls + rant_urls
+
+    tweet_with_urls = tweet # Start with the generated tweet
+
+    # Append the first found URL if any exist, regardless of length
+    if all_source_urls:
+        first_url = all_source_urls[0]
+        # Ensure a space before appending the URL unless the tweet is empty
+        if tweet_with_urls and not tweet_with_urls.endswith(' '):
+             tweet_with_urls += ' '
+        tweet_with_urls += first_url
+
+    print(" the combines tweet is after force url appending", "\n\n\n", tweet_with_urls)
+    # --- End Force URL Appending ---
+
     return Response({
-        'tweet': tweet,
-        'tweet_length': len(tweet),
+        'tweet': tweet_with_urls, # Return the tweet with URL appended
         'sources': {
             'carbon_tweet': carbon_content,
             'rant_tweet': rant_content
@@ -45,10 +78,30 @@ def test_with_sample(request):
     data = request.data
     if 'carbon_tweet' not in data or 'rant_tweet' not in data:
         return Response({'error': 'Missing required sample tweets'}, status=400)
-    tweet = generator.generate_combined_tweet(data['carbon_tweet'], data['rant_tweet'])
+
+    tweet = llm_generator.generate(factual_tweet=data['carbon_tweet'], rant_tweet=data['rant_tweet'])
+
+    # --- Force URL Appending for test_with_sample ---
+    url_processor_test = URLProcessor() # Instantiate locally for this function
+    _, carbon_urls_test = url_processor_test.extract_urls(data['carbon_tweet'])
+    _, rant_urls_test = url_processor_test.extract_urls(data['rant_tweet'])
+    all_source_urls_test = carbon_urls_test + rant_urls_test
+
+    tweet_with_urls_test = tweet # Start with the generated tweet
+
+    if all_source_urls_test:
+        first_url_test = all_source_urls_test[0]
+         # Ensure a space before appending the URL unless the tweet is empty
+        if tweet_with_urls_test and not tweet_with_urls_test.endswith(' '):
+             tweet_with_urls_test += ' '
+        tweet_with_urls_test += first_url_test
+
+    # --- End Force URL Appending ---
+
+
     return Response({
-        'tweet': tweet,
-        'tweet_length': len(tweet),
+        'tweet': tweet_with_urls_test, # Return the tweet with URL appended
+        'tweet_length': len(tweet_with_urls_test), # Return the length of the tweet with URL
         'sources': {
             'carbon_tweet': data['carbon_tweet'],
             'rant_tweet': data['rant_tweet']
@@ -113,7 +166,24 @@ def generate_branded_from_latest(request):
     fact_content = entries['carbon_tweet']['content'] or ""
     context_content = entries['rant_tweet']['content'] or ""
     
-    tweet = branded_generator.generate_branded_tweet(fact_content, context_content)
+    # Get the tweet with brand name integration
+    tweet = get_branded_tweet(fact_content, context_content)
+    
+    # Extra check for URLs in the tweet
+    url_processor = URLProcessor()
+    
+    # Extract URLs from source content
+    _, fact_urls = url_processor.extract_urls(fact_content)
+    _, context_urls = url_processor.extract_urls(context_content)
+    all_urls = fact_urls + context_urls
+    
+    # If we have URLs but they're not in the tweet, force append them
+    if all_urls and not any(url in tweet for url in all_urls):
+        tweet_text, existing_urls = url_processor.extract_urls(tweet)
+        
+        # Final, direct append if needed
+        if len(tweet_text) < 240 - len(all_urls[0]) - 1:
+            tweet = tweet_text + ' ' + all_urls[0]
     
     return Response({
         'tweet': tweet,

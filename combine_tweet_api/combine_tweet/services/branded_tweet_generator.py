@@ -288,12 +288,27 @@ Write a factual, engaging tweet about sustainability:
                     
             clean_tweet = self._fix_formatting(raw_tweet)
             
-            # Process URLs
+            # Process URLs - first extract any URLs the model might have included
             text, new_urls = self.url_processor.extract_urls(clean_tweet)
-            all_urls = list(set(all_urls + new_urls))
-            text = self.url_processor.append_urls_to_text(text, all_urls, self.char_limit)
             
-            return text
+            # Combine with original URLs, ensuring no duplicates
+            for url in all_urls:
+                if url not in new_urls:
+                    new_urls.append(url)
+                    
+            # Ensure we have the final text without URLs before appending
+            final_tweet = self.url_processor.append_urls_to_text(text, new_urls, self.char_limit)
+            
+            # Double-check if URLs are in the final tweet
+            if all_urls and not any(url in final_tweet for url in ['http://', 'https://']):
+                # Force append URLs
+                text_without_urls, _ = self.url_processor.extract_urls(final_tweet)
+                final_tweet = text_without_urls
+                for url in all_urls:
+                    if len(final_tweet) + len(url) + 1 <= self.char_limit:
+                        final_tweet += ' ' + url
+            
+            return final_tweet
             
         except Exception as e:
             print(f"Error generating branded tweet: {str(e)}")
@@ -514,6 +529,12 @@ def smart_branded_tweet_generator(fact_content, context_content, fact_weight=0.7
     Returns:
         dict: Result containing the tweet and information about the brand integration decision
     """
+    # Extract URLs early to ensure they're preserved in both paths
+    url_processor = URLProcessor()
+    _, fact_urls = url_processor.extract_urls(fact_content)
+    _, context_urls = url_processor.extract_urls(context_content)
+    all_urls = fact_urls + context_urls
+    
     # First, check if content is suitable for brand integration
     is_suitable, reason = brand_integration_check(fact_content, context_content)
     is_suitable = True
@@ -523,6 +544,11 @@ def smart_branded_tweet_generator(fact_content, context_content, fact_weight=0.7
         generator = BrandedTweetGenerator()
         generator.set_blend_ratio(fact_weight, context_weight)
         branded_tweet = generator.generate_branded_tweet(fact_content, context_content)
+        
+        # Double-check URL inclusion
+        if all_urls and not any(url in branded_tweet for url in ['http://', 'https://']):
+            tweet_text, existing_urls = url_processor.extract_urls(branded_tweet)
+            branded_tweet = url_processor.append_urls_to_text(tweet_text, all_urls, 240)
         
         return {
             "tweet": branded_tweet,
@@ -535,6 +561,11 @@ def smart_branded_tweet_generator(fact_content, context_content, fact_weight=0.7
         generator = TweetGenerator()
         generator.set_blend_ratio(fact_weight, context_weight)
         regular_tweet = generator.generate_combined_tweet(fact_content, context_content)
+        
+        # Double-check URL inclusion for non-branded tweets too
+        if all_urls and not any(url in regular_tweet for url in ['http://', 'https://']):
+            tweet_text, existing_urls = url_processor.extract_urls(regular_tweet)
+            regular_tweet = url_processor.append_urls_to_text(tweet_text, all_urls, 240)
         
         return {
             "tweet": regular_tweet,
@@ -556,9 +587,38 @@ def get_branded_tweet(fact_content, context_content, fact_weight=0.7, context_we
     Returns:
         str: Generated branded tweet with company name included
     """
+    # First extract all URLs from the content
+    url_processor = URLProcessor()
+    _, fact_urls = url_processor.extract_urls(fact_content)
+    _, context_urls = url_processor.extract_urls(context_content)
+    all_urls = fact_urls + context_urls
+    
+    # Generate the tweet
     generator = BrandedTweetGenerator()
     generator.set_blend_ratio(fact_weight, context_weight)
-    return generator.generate_branded_tweet(fact_content, context_content) 
+    tweet = generator.generate_branded_tweet(fact_content, context_content)
+    
+    # Triple-check that URLs are included (belt and suspenders approach)
+    if all_urls and not any(url in tweet for url in all_urls):
+        # Extract any existing URLs
+        tweet_text, existing_urls = url_processor.extract_urls(tweet)
+        
+        # Create new list with all unique URLs
+        combined_urls = existing_urls.copy()
+        for url in all_urls:
+            if url not in combined_urls:
+                combined_urls.append(url)
+        
+        # Force append all URLs
+        tweet = url_processor.append_urls_to_text(tweet_text, combined_urls, 240)
+        
+        # Last resort - direct append if still missing
+        if not any(url in tweet for url in all_urls):
+            for url in all_urls:
+                if len(tweet) + len(url) + 1 <= 240 and url not in tweet:
+                    tweet += ' ' + url
+    
+    return tweet
 
 # Function to get a smart branded tweet that only uses branding when appropriate
 def get_smart_branded_tweet(fact_content, context_content, fact_weight=0.7, context_weight=0.3, force_branding=False):
@@ -575,4 +635,24 @@ def get_smart_branded_tweet(fact_content, context_content, fact_weight=0.7, cont
     Returns:
         dict: Result containing the tweet and information about the brand integration decision
     """
-    return smart_branded_tweet_generator(fact_content, context_content, fact_weight, context_weight, force_branding) 
+    result = smart_branded_tweet_generator(fact_content, context_content, fact_weight, context_weight, force_branding)
+    
+    # Double-check that URLs are included in the tweet
+    tweet = result['tweet']
+    if fact_content and not any(url in tweet for url in ['http://', 'https://']):
+        url_processor = URLProcessor()
+        _, fact_urls = url_processor.extract_urls(fact_content)
+        _, context_urls = url_processor.extract_urls(context_content)
+        all_urls = fact_urls + context_urls
+        
+        if all_urls:
+            # Extract any URLs that might already be in the tweet
+            tweet_text, existing_urls = url_processor.extract_urls(tweet)
+            # Add any URLs from the input content that aren't already in the tweet
+            for url in all_urls:
+                if url not in existing_urls:
+                    existing_urls.append(url)
+            # Reappend all URLs to ensure they're included
+            result['tweet'] = url_processor.append_urls_to_text(tweet_text, existing_urls, 240)
+    
+    return result 

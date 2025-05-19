@@ -1,16 +1,12 @@
 import os
 import json
 import logging
-from django.conf import settings
-from google import genai  
-from google.genai import types
-from google.genai.types import (
-    GenerateContentConfig,
-    HarmCategory,
-    HarmBlockThreshold,
-    HttpOptions,
-    SafetySetting,
-) 
+# from django.conf import settings # Removed as not used
+# Removed google.genai imports
+# from google import genai
+# from google.genai import types
+# from google.genai.types import (...)
+from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,123 +14,105 @@ load_dotenv()
 # Set up logging
 logging.basicConfig(level=logging.ERROR)
 
+# Configure and instantiate the OpenAI client
+client = OpenAI()
 
-with open(os.path.join(settings.BASE_DIR, 'combine_tweet', 'character3.json')) as file:
-    CHARACTER = json.load(file)
+# Updated system instruction based on the persona
+system_instruction = "You are CarbonSustainAI, the voice of CarbonSustain — a climate-smart, data-driven guide helping small and mid-sized businesses (SMBs) track, reduce, and offset their carbon emissions using AI-powered insights and on-chain transparency."
 
-# Configure the Gemini API key
-client=genai.Client(api_key=os.getenv("YOUR_API_KEY"))
+# Removed safety_settings
+# safety_settings = [...]
 
-system_instruction = "You are twitter bot that combines data-driven factual reporting with sharp, edgy commentary to highlight climate issues and sustainability"
-safety_settings = [
-    SafetySetting(
-        category=HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-        threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-    ),
-    SafetySetting(
-        category=HarmCategory.HARM_CATEGORY_HARASSMENT,
-        threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-    ),
-    SafetySetting(
-        category=HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-        threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-    ),
-    SafetySetting(
-        category=HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-        threshold=HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-    ),
-]
-# Keep your existing generation_config if you like:
-generation_config = {
-    "temperature": 0.7,
-    "top_p": 0.95,
-    "top_k": 64,
-    "max_output_tokens": 60,
-    "response_mime_type": "text/plain",
-}
 
 class TweetLLM:
-    def __init__(self):
-        self.character = CHARACTER
-        self.examples = self.character['example_tweets']
+    # The __init__ method is no longer needed
+    # def __init__(self):
+    #     pass
 
-        self.persona_base = (
-            f"Persona: {self.character['persona_name']} — {self.character['persona_description']}\n"
-            f"Tone: {', '.join(self.character['tone']['primary'])}\n"
-            f"Style guidelines: {self.character['style_guidelines']}\n"
-            f"EXAMPLE TWEETS:\n"
+    def generate(self, factual_tweet: str, rant_tweet: str, max_tokens: int = 100, temperature: float = 0.7):
+        # Use a2.py to find relevant tweets based on the factual tweet
+        # These tweets will serve as the "reference" context
+        a2_tweets_context = ""
+        try:
+            # *** MODIFIED IMPORT STATEMENT ***
+            # Assuming a2.py is in the same directory (services/) and it's part of the package
+            import a2
+            relevant_tweets_from_a2 = a2.top3_matches(factual_tweet)
+            a2_tweets_text = [tweet for tweet, score in relevant_tweets_from_a2]
+            if a2_tweets_text:
+                 # Label these tweets clearly as the reference/additional context
+                 a2_tweets_context = "\n--- Relevant tweets from knowledge base (serving as reference context) ---\n" + "\n---\n".join(a2_tweets_text) + "\n--------------------------------------------------------------------\n\n"
+        except ImportError:
+            # If direct import fails, try relative import from current directory
+            try:
+                from . import a2
+                relevant_tweets_from_a2 = a2.top3_matches(factual_tweet)
+                a2_tweets_text = [tweet for tweet, score in relevant_tweets_from_a2]
+                if a2_tweets_text:
+                    a2_tweets_context = "\n--- Relevant tweets from knowledge base (serving as reference context) ---\n" + "\n---\n".join(a2_tweets_text) + "\n--------------------------------------------------------------------\n\n"
+                print(a2_tweets_context)
+            except ImportError:
+                 logging.error("Could not import a2.py. Ensure it is in the same directory as openai_inference.py and the application is run as a package.")
+                 a2_tweets_context = "" # No additional context if import fails
+            except Exception as e:
+                logging.error("Error finding relevant tweets with a2.py after trying relative import: %s", e)
+                a2_tweets_context = "" # No additional context if matching fails
+        except Exception as e:
+            logging.error("Error finding relevant tweets with a2.py after trying direct import: %s", e)
+            a2_tweets_context = "" # No additional context if matching fails
+        
+
+        # Construct the full prompt string for the user message
+        full_prompt_text = (
+            "You will be provided with a factual tweet, a rant tweet, and several relevant tweets from a knowledge base (serving as reference context).\n\n"
+            "🎯 Your task:\n\n"
+            "Fuse the truth from the factual tweet with the emotion or urgency of the rant tweet.\n\n"
+            "Use the relevant tweets from the knowledge base to anchor your tone and viewpoint — calm, clear, constructive, reflecting CarbonSustain's voice.\n\n"
+            "Write a single, original tweet in CarbonSustain's voice that:\n\n"
+            "Acknowledges frustration or irony.\n\n"
+            "Reframes the issue with insight and optimism.\n\n"
+            "Offers a solution, mindset shift, or practical action.\n\n"
+            "Optionally mentions CarbonSustain's philosophy (e.g. measurement, AI, supply chain visibility) without sounding like a pitch.\n\n"
+            "Ends with a strong closer – a mic drop, hopeful insight, or hashtag.\n\n"
+            "🧠 Tone & Style:\n\n"
+            "Calm, clear, slightly witty.\n\n"
+            "Feels like a climate-smart advisor, not a corporate brochure.\n\n"
+            "Never panicked. Never preachy. Never doomscroll bait.\n\n"
+            "Uses short, punchy lines. Avoids filler. Rhetorical questions welcome.\n\n"
+            "📝 Writing Rules:\n\n"
+            "1–3 lines max. No threads.\n\n"
+            "Be informative and emotionally aware.\n\n"
+            "Mix activist sharpness with solution-focused clarity.\n\n"
+            "✅ Example:\n\n"
+            "Factual Tweet: \"Scope 3 emissions make up 70%+ of corporate carbon footprints. Yet most companies don't even measure them.\"\n\n"
+            "Rant Tweet: \"Let me guess. Scope 3 means I'm responsible for my supplier's supplier's diesel truck. Awesome.\"\n\n"
+            "Reference Tweets (from knowledge base): \"Scope 3 isn't a blame game. It's a map of where your carbon hides—and where your impact can shine. We help SMBs measure the invisible.\"\n\n"
+            "✨ Example Output Tweet:\n"
+            "\"Scope 3 sounds like a nightmare. But it's really a flashlight. You can't shrink what you can't see. Start with what you can track—your vendors, commutes, cloud usage. Visibility is power. #CarbonAccounting\"\n\n"
+            "--- Now generate a tweet based on the following inputs ---\n\n"
+            f"Factual Tweet: \"{factual_tweet}\"\n\n"
+            f"Rant Tweet: \"{rant_tweet}\"\n\n"
+            f"{a2_tweets_context}" # Include the relevant tweets from a2.py as reference context
+            "✨ Output Tweet:"
         )
 
-    def generate(self, prompt, max_tokens=60, temperature=0.7):
-        messages = [
-            {
-                "role": "system",
-                "content": (
-                    f"You are {self.character['persona_name']}, a data-driven, friendly sustainability advocate.\n"
-                    "• Always start with a clear fact, stat, or policy observation.\n"
-                    "• Keep tweets to 1-2 sentences, 0-2 emojis (🌍 🚀 ✅), and 1-2 relevant hashtags.\n"
-                    "• Use a rhetorical question or call-to-action in ~25% of tweets.\n"
-                    f"• Only mention {self.character['persona_name']}—and then in a single, lightly boastful sentence—if proposing a solution, announcing an initiative, partnership, tool, or responding as the company.\n"
-                    f"• That boast line should briefly state how {self.character['persona_name']} is helping, innovating, or supporting the cause.\n"
-                    f"• Do NOT mention {self.character['persona_name']} in purely observational, critical, or third-party contexts."
-                )
-            },
-            # Example tweets to demonstrate the style
-            {
-                "role": "assistant",
-                "content": "Cutting 800 EPA grants jeopardizes critical climate infrastructure—what's our plan to rebuild resilience? 🌍 #ActOnClimate"
-            },
-            {
-                "role": "assistant",
-                "content": f"We've launched a real-time emissions dashboard for every organization to see its impact live. At {self.character['persona_name']}, we're empowering teams with transparent data to drive real change. 🚀 #CarbonData"
-            },
-            {
-                "role": "assistant", 
-                "content": f"Global CO₂ emissions hit 36.8 Gt in 2024—highest ever recorded. Ready to turn the tide? 🌍 #ClimateAction"
-            },
-            {
-                "role": "assistant",
-                "content": f"Our new alliance with leading researchers brings cutting-edge science into every carbon report. At {self.character['persona_name']}, we're uniting academia and industry to accelerate sustainability. 🔗 #ClimateCollab"
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-
         try:
-            cfg = generation_config.copy()
-            cfg["temperature"] = temperature
-            cfg["max_output_tokens"] = max_tokens
-            
-            # Format the messages for Gemini's content structure
-            formatted_prompt = "\n\n".join([f"{msg['role'].upper()}: {msg['content']}" for msg in messages])
-            
-            total_tokens = client.models.count_tokens(
-                model="gemini-2.0-flash-001", 
-                contents=formatted_prompt,
+            # Use OpenAI Chat Completions API with the client instance
+            response = client.chat.completions.create(
+                model="gpt-4o-mini", # Using a cost-effective and capable model, you can change this
+                messages=[
+                    {"role": "system", "content": system_instruction}, # System instruction as a system message
+                    {"role": "user", "content": full_prompt_text} # The detailed prompt as a user message
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
             )
-            print("total_tokens: ", total_tokens)
-            
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=formatted_prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.7,
-                    top_p=0.95,
-                    top_k=64,
-                    max_output_tokens=60,
-                    system_instruction=system_instruction,
-                    safety_settings=safety_settings,
-                    response_mime_type="text/plain"
-                )
-            )
-            
-            generated = response.text
-            
+            # Extract the generated text from the OpenAI response
+            generated = response.choices[0].message.content
+
         except Exception as e:
-            logging.error("Error generating tweet: %s", e)
+            logging.error("Error generating tweet with OpenAI: %s", e)
             generated = "An error occurred while generating the tweet. Please try again."
-        
+
         print(generated)
         return generated
