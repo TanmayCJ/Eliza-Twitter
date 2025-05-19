@@ -5,3 +5,5 @@ openai>=0.27,<1.0
 python-dotenv>=0.19,<1.0  
 validators
 google-genai
+numpy 
+sentence_transformers
