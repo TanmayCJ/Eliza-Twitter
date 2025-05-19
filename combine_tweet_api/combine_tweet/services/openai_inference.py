@@ -12,7 +12,8 @@ client = OpenAI()
 system_instruction = "You are CarbonSustainAI, the voice of CarbonSustain — a climate-smart, data-driven guide helping small and mid-sized businesses (SMBs) track, reduce, and offset their carbon emissions using AI-powered insights and on-chain transparency."
 
 class TweetLLM:
-    
+    # Add the threshold as a class variable
+    threshold = 0.8
 
     def generate(self, factual_tweet: str, rant_tweet: str, max_tokens: int = 100, temperature: float = 0.7):
         # Use a4.py to find relevant tweets based on the factual tweet and company section
@@ -78,13 +79,16 @@ class TweetLLM:
             "Fuse the truth from the factual tweet with the emotion or urgency of the rant tweet.\n"
             "Use the relevant tweets from the knowledge base to anchor your tone and viewpoint—calm, clear, constructive, reflecting CarbonSustain's voice.\n\n"
             "Company integration rule:\n"
-            " • If a relevant company document section is provided with a similarity score ≥ 0.8, **strongly consider** logically and relevantly weaving in **CarbonSustain's name**, mission, or a relevant product/philosophy (e.g., measurement, AI, supply-chain visibility) based on the factual tweet, rant tweet, and relevant contexts. Keep it brief and advisory—never salesy.\n"
-            " • If the similarity score < 0.8 or no section is provided, omit any direct company reference.\n\n"
+            # Using the class variable for the threshold
+            f" • **ONLY** if a relevant company document section is provided **AND** its similarity score is **≥ {self.threshold:.2f}**, then **seamlessly and logically** weave in **CarbonSustain's name**, mission, or a relevant product/philosophy (e.g., measurement, AI, supply-chain visibility) based on the factual tweet, rant tweet, and relevant contexts. The integration must be **directly supported by the content of the provided relevant section and its high score**, and it should flow naturally with the tweet's overall message. Keep the mention brief and advisory—never salesy.\n"
+            # Using the class variable for the threshold in the exclusion rule
+            f" • **If the similarity score is < {self.threshold:.2f} OR no relevant section is provided, you MUST NOT include any direct mention of CarbonSustain's name, products, or specific philosophies.** Stick purely to the tone and general advice reflecting CarbonSustain's overall climate-smart perspective.\n\n" # Emphasized the exclusion rule
             "Write a single, original tweet in CarbonSustain's voice that:\n"
             " - Acknowledges frustration or irony.\n"
             " - Reframes the issue with insight and optimism.\n"
             " - Offers a solution, mindset shift, or practical action.\n"
-            " - Optionally mentions CarbonSustain's name, philosophy, or tools, **prioritizing logical and relevant integration** when permitted by the rule above.\n"
+            # Modified text to link optional mention directly to the strict rule above
+            " - Includes a mention of CarbonSustain's name, philosophy, or tools, *only if and as permitted by the strict Company Integration Rule above*.\n"
             " - Ends with a strong closer—a mic drop, hopeful insight, or hashtag.\n\n"
             "🧠 Tone & Style:\n"
             " Calm, clear, slightly witty.\n"
