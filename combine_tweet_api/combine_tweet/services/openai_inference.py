@@ -12,14 +12,15 @@ client = OpenAI()
 system_instruction = "You are CarbonSustainAI, the voice of CarbonSustain — a climate-smart, data-driven guide helping small and mid-sized businesses (SMBs) track, reduce, and offset their carbon emissions using AI-powered insights and on-chain transparency."
 
 class TweetLLM:
-    # Add the threshold as a class variable
-    threshold = 0.8
+    
+    threshold = 0
 
     def generate(self, factual_tweet: str, rant_tweet: str, max_tokens: int = 100, temperature: float = 0.7):
         # Use a4.py to find relevant tweets based on the factual tweet and company section
         a4_tweets_context = ""
-        a4_section_context = "" # Initialize variable for company section context
+        a4_section_context = "" 
         a4=None
+        section_score = 0 
 
         # --- Import a4.py and get relevant contexts ---
         try:
@@ -48,18 +49,23 @@ class TweetLLM:
                 relevant_tweets_from_a4 = a4.top3_matches(factual_tweet)
                 a4_tweets_text = [tweet for tweet, score in relevant_tweets_from_a4]
                 if a4_tweets_text:
-                    # Label these tweets clearly as the reference/additional context
-                    # Adjusted formatting to be clearer in the prompt
-                    a4_tweets_context = "\nReference Tweets (from knowledge base):\n" + "\n".join([f"• {tweet}" for tweet in a4_tweets_text]) + "\n\n"
+                    
+                    a4_tweets_context = "\n--- Relevant tweets from knowledge base (serving as reference context) ---\n" + "\n---\n".join(a4_tweets_text) + "\n--------------------------------------------------------------------\n\n"
 
-                # Get the best section from company docs
-                relevant_section, section_score = a4.best_section(factual_tweet)
+                
+                relevant_section, score = a4.best_section(factual_tweet) 
+                section_score = score 
+
                 if relevant_section:
-                    # Adjusted formatting to be clearer in the prompt
+                    
                     a4_section_context = (
-                        f"Relevant section ({section_score:.2f}):\n" # Using score format from example
-                        f"{relevant_section}\n\n"
+                        f"\n--- Relevant section from company documents (potentially useful for integrating company objectives/products based on similarity score) ---\n"
+                        f"Similarity Score: {section_score:.3f}\n\n" 
+                        f"{relevant_section}\n"
+                        f"---------------------------------------------------------------------\n\n"
                     )
+
+                
                 if a4_tweets_context:
                     print(a4_tweets_context)
                 if a4_section_context:
@@ -69,12 +75,13 @@ class TweetLLM:
                 logging.error("Error using a4.py functions (top3_matches or best_section): %s", e)
                 a4_tweets_context = ""
                 a4_section_context = ""
-        # --- End Import and Context Retrieval ---
+                section_score = 0 
 
-        # Construct the full prompt string for the user message
-        # Adjusted prompt structure for clarity for the model
+
+        
         full_prompt_text = (
-            '''You are CarbonSustainAI — the voice of CarbonSustain: a climate-smart, data-first guide helping small and mid-sized businesses (SMBs) track, reduce, and offset their carbon emissions through AI-powered insights and on-chain accountability.
+            f"""You are CarbonSustainAI — the voice of CarbonSustain: a climate-smart, data-first guide helping small and mid-sized businesses (SMBs) track, reduce, and offset their carbon emissions through AI-powered insights and on-chain accountability.
+
 Your Mission
 You are given:
 
@@ -82,32 +89,25 @@ A factual tweet from @CarbonTruth (serious, data-heavy)
 
 A rant tweet from @CarbonRant (sarcastic, emotional, or critical)
 
-A context block of CarbonSustain tweets that define the company’s tone, phrasing, and viewpoint (a4_tweets_context)
+A context block of CarbonSustain tweets that define the company's tone, phrasing, and viewpoint ({'present' if a4_tweets_context else 'not present'})
 
-A relevant section from company documents, with a similarity score and product details (a4_section_context)
+A relevant section from company documents, with a similarity score and product details ({'present' if a4_section_context else 'not present'})
 
 Your job is to generate a single, original tweet that:
 
 Fuses the credibility of the factual tweet with the emotion or urgency of the rant
 
-Mirrors the tone, vocabulary, and phrasing of real CarbonSustain tweets (a4_tweets_context) to stay on-brand
+Mirrors the tone, vocabulary, and phrasing of real CarbonSustain tweets (when provided) to stay on-brand
 
-Reflects CarbonSustain’s calm, constructive worldview
+Reflects CarbonSustain's calm, constructive worldview
 
 Company Integration Rules
-If a4_section_context is provided and its similarity score is ≥ {self.threshold:.2f}, you may:
-
-Seamlessly weave in a relevant mention of CarbonSustain’s name, mission, philosophy, or product area (e.g., AI insights, emissions measurement, supply chain transparency)
-
-Only include what's directly supported by that section's content
-
-Keep mentions brief, natural, and advisory — never promotional or salesy
-
-If similarity is < {self.threshold:.2f} or no section is provided:
-
-Do not mention CarbonSustain, its name, products, or features
-
-Stick to general climate-smart advice in CarbonSustain’s voice
+"""
+            f"""• **STRICT RULE: You ABSOLUTELY MUST ONLY integrate a mention of CarbonSustain's name, mission, philosophy, or product area IF** a relevant company document section is provided **AND** its similarity score is **>= {self.threshold:.2f}**.
+• **IF** the condition above is met (section provided **AND** score is **>= {self.threshold:.2f}**), then **seamlessly and logically** weave in a relevant mention (e.g., AI insights, emissions measurement, supply chain transparency).
+• The mention **must be directly supported by the content of the PROVIDED relevant section and its score**.
+• Keep mentions brief, natural, and advisory — never promotional or salesy.
+• **IF** the similarity score is **< {self.threshold:.2f} OR no relevant section is provided**, you **ABSOLUTELY MUST NOT** include any direct mention of CarbonSustain, its name, products, or features. Stick purely to the tone and general advice reflecting CarbonSustain's overall climate-smart perspective.
 
 Writing Guidelines
 1–3 lines max — no threads
@@ -140,25 +140,25 @@ Prioritize clarity over cleverness when in doubt
 Input Format
 Factual Tweet: "{factual_tweet}"
 Rant Tweet: "{rant_tweet}"
-{a4_tweets_context}
-{a4_section_context}'''
+{a4_tweets_context}{a4_section_context}
+
+✨ Output Tweet:""" 
 
         )
 
-
         try:
-            # Use OpenAI Chat Completions API with the client instance
+            
             response = client.chat.completions.create(
-                model="gpt-4o-mini", # Using a cost-effective and capable model, you can change this
+                model="gpt-4o-mini", 
                 messages=[
-                    {"role": "system", "content": system_instruction}, # System instruction as a system message
-                    {"role": "user", "content": full_prompt_text} # The detailed prompt as a user message
+                    {"role": "system", "content": system_instruction}, 
+                    {"role": "user", "content": full_prompt_text} 
                 ],
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
-            # Extract the generated text from the OpenAI response
-            generated = response.choices[0].message.content.strip() # Add strip() to remove leading/trailing whitespace
+            
+            generated = response.choices[0].message.content.strip() 
 
         except Exception as e:
             logging.error("Error generating tweet with OpenAI: %s", e)
