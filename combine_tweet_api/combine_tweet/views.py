@@ -69,6 +69,53 @@ def generate_combined(request):
         }
     })
 
+@api_view(['POST'])
+def generate_combined_post(request):
+    """
+    Generate a combined tweet from carbon and rant tweet content provided
+    in the request body, applying the same URL appending logic.
+    """
+    data = request.data
+    if 'carbon_tweet' not in data or 'rant_tweet' not in data:
+        return Response({'error': 'Missing required tweet content (carbon_tweet and/or rant_tweet)'}, status=400)
+
+    carbon_content = data['carbon_tweet'] or ""
+    rant_content = data['rant_tweet'] or ""
+
+    print("truth tweet\n",carbon_content,"\n\nrant tweet\n\n" ,rant_content)
+
+    # Use the new llm_generator and call its 'generate' method
+    tweet = llm_generator.generate(factual_tweet=carbon_content, rant_tweet=rant_content)
+    print(" the combines tweet is before url processing", "\n\n\n",tweet)
+
+    # --- Force URL Appending ---
+    # Extract URLs from source content
+    url_processor_post = URLProcessor() # Instantiate locally for this function
+    _, carbon_urls = url_processor_post.extract_urls(carbon_content)
+    _, rant_urls = url_processor_post.extract_urls(rant_content)
+    all_source_urls = carbon_urls + rant_urls
+
+    tweet_with_urls = tweet # Start with the generated tweet
+
+    # Append the first found URL if any exist, regardless of length
+    if all_source_urls:
+        first_url = all_source_urls[0]
+        # Ensure a space before appending the URL unless the tweet is empty
+        if tweet_with_urls and not tweet_with_urls.endswith(' '):
+             tweet_with_urls += ' '
+        tweet_with_urls += first_url
+
+    print(" the combines tweet is after force url appending", "\n\n\n", tweet_with_urls)
+    # --- End Force URL Appending ---
+
+    return Response({
+        'tweet': tweet_with_urls, # Return the tweet with URL appended
+        'sources': {
+            'carbon_tweet': carbon_content,
+            'rant_tweet': rant_content
+        }
+    })
+
 @api_view(['GET'])
 def test(request):
     return Response({"message": "Test endpoint working"})

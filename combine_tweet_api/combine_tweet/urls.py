@@ -11,4 +11,5 @@ urlpatterns = [
     path('generate-branded-latest/', views.generate_branded_from_latest, name='generate-branded-latest'),
     path('api/branded_tweet/', views.generate_branded_tweet, name='generate_branded_tweet'),
     path('generate-forced-branded-latest/', views.generate_forced_branded_from_latest, name='generate-forced-branded-latest'),
+    path('generate_combined_post/', views.generate_combined_post, name='generate_combined_post'),
 ]

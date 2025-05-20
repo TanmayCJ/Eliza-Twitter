@@ -3,6 +3,7 @@ import json
 import logging
 from openai import OpenAI
 from dotenv import load_dotenv
+import random # Import the random module
 load_dotenv()
 
 logging.basicConfig(level=logging.ERROR)
@@ -13,7 +14,7 @@ system_instruction = "You are CarbonSustainAI, the voice of CarbonSustain — a 
 
 class TweetLLM:
     
-    threshold = 0
+    threshold = 0.8
 
     def generate(self, factual_tweet: str, rant_tweet: str, max_tokens: int = 100, temperature: float = 0.7):
         # Use a4.py to find relevant tweets based on the factual tweet and company section
@@ -56,7 +57,9 @@ class TweetLLM:
                 relevant_section, score = a4.best_section(factual_tweet) 
                 section_score = score 
 
-                if relevant_section:
+                # Introduce probabilistic check for including the section context
+                include_section_prob = 0.25 # 25 percent probability
+                if relevant_section and section_score >= self.threshold and random.random() <= include_section_prob:
                     
                     a4_section_context = (
                         f"\n--- Relevant section from company documents (potentially useful for integrating company objectives/products based on similarity score) ---\n"
@@ -64,6 +67,9 @@ class TweetLLM:
                         f"{relevant_section}\n"
                         f"---------------------------------------------------------------------\n\n"
                     )
+                else:
+                    # If the conditions aren't met or probability check fails, ensure context is empty
+                    a4_section_context = ""
 
                 
                 if a4_tweets_context:
@@ -145,6 +151,7 @@ Rant Tweet: "{rant_tweet}"
 ✨ Output Tweet:""" 
 
         )
+
 
         try:
             
