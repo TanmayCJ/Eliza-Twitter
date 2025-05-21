@@ -11,7 +11,9 @@ from .views import (
     EnvironmentalNewsView,
     ImageGenView,
     PersonalityAnalysisView,
-    TwitterTrendsTimeframesView
+    TwitterTrendsTimeframesView,
+    QueuedTweetsView,
+    QueuedTweetDetailView
 )
 
 urlpatterns = [
@@ -27,4 +29,6 @@ urlpatterns = [
     path('imagegen/', ImageGenView.as_view(), name='imagegen'),
     path('personality-analysis/', PersonalityAnalysisView.as_view(), name='personality-analysis'),
     path('twitter-trends/timeframes/', TwitterTrendsTimeframesView.as_view(), name='twitter-trends-timeframes'),
+    path('queued-tweets/', QueuedTweetsView.as_view(), name='queued-tweets'),
+    path('queued-tweets/<int:pk>/', QueuedTweetDetailView.as_view(), name='queued-tweet-detail'),
 ]
