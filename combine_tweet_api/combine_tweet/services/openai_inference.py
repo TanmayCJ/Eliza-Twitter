@@ -163,8 +163,6 @@ A rant tweet from @CarbonRant (sarcastic, emotional, or critical)
 
 A context block of CarbonSustain tweets that define the company's tone, phrasing, and viewpoint ({'present' if a4_tweets_context else 'not present'})
 
-A relevant section from company documents, with a similarity score and product details ({'present' if a4_section_context else 'not present'})
-
 Your job is to generate a single, original tweet that:
 
 Fuses the credibility of the factual tweet with the emotion or urgency of the rant
@@ -205,7 +203,7 @@ Prioritize clarity over cleverness when in doubt
 Input Format
 Factual Tweet: "{factual_tweet}"
 Rant Tweet: "{rant_tweet}"
-{a4_tweets_context}{a4_section_context}
+{a4_tweets_context}
 
 ✨ Output Tweet:""" 
 

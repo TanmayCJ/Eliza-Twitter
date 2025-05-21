@@ -2,18 +2,9 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from combine_tweet.services.db_manager import DatabaseManager
-# Remove or comment out the old TweetGenerator import
-# from combine_tweet.services.tweet_generator import TweetGenerator
-# Import the new TweetLLM class (adjust the path based on your project structure)
-# Assuming 'new' is a top-level package
 from combine_tweet.services.openai_inference import TweetLLM
-from combine_tweet.services.branded_tweet_generator import BrandedTweetGenerator, get_branded_tweet
-from combine_tweet.services.forced_branded_tweet_generator import get_forced_branded_tweet
 from combine_tweet.services.url_processor import URLProcessor
 
-# Removed the old TweetGenerator instance
-# generator = TweetGenerator()
-branded_generator = BrandedTweetGenerator()
 
 # Instantiate the new TweetLLM
 llm_generator = TweetLLM()
@@ -84,7 +75,6 @@ def generate_combined_post(request):
 
     print("truth tweet\n",carbon_content,"\n\nrant tweet\n\n" ,rant_content)
 
-    # Use the new llm_generator and call its 'generate' method
     tweet = llm_generator.generate(factual_tweet=carbon_content, rant_tweet=rant_content)
     print(" the combines tweet is before url processing", "\n\n\n",tweet)
 
@@ -155,110 +145,3 @@ def test_with_sample(request):
         }
     })
 
-@api_view(['POST'])
-def generate_branded_tweet(request):
-    """
-    Generate a branded tweet that always includes the company name.
-    
-    POST data:
-    - fact_content: The factual content to include
-    - context_content: The contextual content to include
-    - fact_weight (optional): Weight for factual content (default: 0.7)
-    - context_weight (optional): Weight for contextual content (default: 0.3)
-    """
-    data = request.data
-    if 'fact_content' not in data or 'context_content' not in data:
-        return Response({'error': 'Missing required content (fact_content and/or context_content)'}, status=400)
-    
-    # Get blend weights if provided, otherwise use defaults
-    fact_weight = float(data.get('fact_weight', 0.7))
-    context_weight = float(data.get('context_weight', 0.3))
-    
-    # Validate weights
-    if abs((fact_weight + context_weight) - 1.0) > 0.01:
-        return Response({
-            'error': 'Blend weights must add up to 1.0',
-            'provided': {'fact_weight': fact_weight, 'context_weight': context_weight}
-        }, status=400)
-    
-    # Set blend ratio on generator
-    branded_generator.set_blend_ratio(fact_weight, context_weight)
-    
-    # Generate the tweet
-    tweet = branded_generator.generate_branded_tweet(
-        data['fact_content'], 
-        data['context_content']
-    )
-    
-    return Response({
-        'tweet': tweet,
-        'tweet_length': len(tweet),
-        'sources': {
-            'fact_content': data['fact_content'],
-            'context_content': data['context_content']
-        },
-        'blend_ratio': {
-            'fact_weight': fact_weight,
-            'context_weight': context_weight
-        }
-    })
-
-@api_view(['GET'])
-def generate_branded_from_latest(request):
-    """
-    Generate a branded tweet from the latest database entries.
-    This will always include the company name in the tweet.
-    """
-    entries = DatabaseManager.get_latest_entries()
-    fact_content = entries['carbon_tweet']['content'] or ""
-    context_content = entries['rant_tweet']['content'] or ""
-    
-    # Get the tweet with brand name integration
-    tweet = get_branded_tweet(fact_content, context_content)
-    
-    # Extra check for URLs in the tweet
-    url_processor = URLProcessor()
-    
-    # Extract URLs from source content
-    _, fact_urls = url_processor.extract_urls(fact_content)
-    _, context_urls = url_processor.extract_urls(context_content)
-    all_urls = fact_urls + context_urls
-    
-    # If we have URLs but they're not in the tweet, force append them
-    if all_urls and not any(url in tweet for url in all_urls):
-        tweet_text, existing_urls = url_processor.extract_urls(tweet)
-        
-        # Final, direct append if needed
-        if len(tweet_text) < 240 - len(all_urls[0]) - 1:
-            tweet = tweet_text + ' ' + all_urls[0]
-    
-    return Response({
-        'tweet': tweet,
-        'tweet_length': len(tweet),
-        'sources': {
-            'fact_content': fact_content,
-            'context_content': context_content
-        }
-    })
-
-@api_view(['GET'])
-def generate_forced_branded_from_latest(request):
-    """
-    Generate a branded tweet from the latest database entries.
-    This will ALWAYS include the company name, with no content suitability analysis.
-    """
-    entries = DatabaseManager.get_latest_entries()
-    fact_content = entries['carbon_tweet']['content'] or ""
-    context_content = entries['rant_tweet']['content'] or ""
-    
-    tweet = get_forced_branded_tweet(fact_content, context_content)
-    
-    return Response({
-        'tweet': tweet,
-        'tweet_length': len(tweet),
-        'is_branded': True,
-        'sources': {
-            'fact_content': fact_content,
-            'context_content': context_content
-        }
-    })
