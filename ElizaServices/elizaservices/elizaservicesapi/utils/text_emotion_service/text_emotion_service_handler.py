@@ -1,31 +1,44 @@
-import torch
-import torch.nn.functional as F
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import boto3
+from django.conf import settings
 
 class TextEmotionService:
     def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained("monologg/bert-base-cased-goemotions-original")
-        self.model = AutoModelForSequenceClassification.from_pretrained("monologg/bert-base-cased-goemotions-original")
-        self.goemotion_labels = [
-            "admiration", "amusement", "anger", "annoyance", "approval", "caring",
-            "confusion", "curiosity", "desire", "disappointment", "disapproval", "disgust",
-            "embarrassment", "excitement", "fear", "gratitude", "grief", "joy", "love",
-            "nervousness", "optimism", "pride", "realization", "relief", "remorse",
-            "sadness", "surprise", "neutral"
-        ]
+        self.comprehend_client = boto3.client(
+            'comprehend',
+            region_name=settings.AWS_REGION,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+        )
 
     def analyze_emotions(self, text, top_k=5):
-        # Tokenize and pass through model
-        inputs = self.tokenizer(text, return_tensors="pt", truncation=True)
-        outputs = self.model(**inputs)
+        try:
+            response = self.comprehend_client.detect_sentiment(
+                Text=text,
+                LanguageCode='en'
+            )
 
-        # Apply softmax to get probabilities
-        probs = F.softmax(outputs.logits, dim=1)
+            sentiment = response.get('Sentiment')
+            scores = response.get('SentimentScore', {})
 
-        # Get top emotions
-        topk = torch.topk(probs, k=top_k)
-        top_emotions = [(self.goemotion_labels[idx], float(score)) for idx, score in zip(topk.indices[0], topk.values[0])]
+            # Convert AWS style to emotion format
+            emotions = [
+                {"emotion": "positive", "score": round(scores.get("Positive", 0.0), 4)},
+                {"emotion": "negative", "score": round(scores.get("Negative", 0.0), 4)},
+                {"emotion": "neutral", "score": round(scores.get("Neutral", 0.0), 4)},
+                {"emotion": "mixed", "score": round(scores.get("Mixed", 0.0), 4)}
+            ]
 
-        return {
-            "emotions": [{"emotion": label, "score": score} for label, score in top_emotions]
-        } 
+            # Sort by score descending and take top_k
+            emotions_sorted = sorted(emotions, key=lambda x: x['score'], reverse=True)[:top_k]
+            print(emotions_sorted)
+
+            return {
+                "emotions": emotions_sorted
+            }
+        except Exception as e:
+            # Return neutral emotions in case of error
+            return {
+                "emotions": [
+                    {"emotion": "neutral", "score": 1.0}
+                ]
+            } 
