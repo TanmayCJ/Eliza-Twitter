@@ -1,303 +1,161 @@
-# Eliza 🤖
+# CarbonTruth Bot Setup Guide
 
-<div align="center">
-  <img src="./docs/static/img/eliza_banner.jpg" alt="Eliza Banner" width="100%" />
-</div>
+This guide will walk you through setting up and running the CarbonTruth bot from the ElizaBots project.
 
-<div align="center">
+## Table of Contents
+1. [Prerequisites](#prerequisites)
+2. [Setup Instructions](#setup-instructions)
+3. [Environment Configuration](#9-configure-environment-variables)
+4. [Running the Bot](#10-start-the-bot)
+5. [Troubleshooting](#troubleshooting)
 
-📑 [Technical Report](https://arxiv.org/pdf/2501.06781) |  📖 [Documentation](https://elizaos.github.io/eliza/) | 🎯 [Examples](https://github.com/thejoven/awesome-eliza)
 
-</div>
+## Prerequisites
 
-## 🌍 README Translations
-
-[中文说明](i18n/readme/README_CN.md) | [日本語の説明](i18n/readme/README_JA.md) | [한국어 설명](i18n/readme/README_KOR.md) | [Persian](i18n/readme/README_FA.md) | [Français](i18n/readme/README_FR.md) | [Português](i18n/readme/README_PTBR.md) | [Türkçe](i18n/readme/README_TR.md) | [Русский](i18n/readme/README_RU.md) | [Español](i18n/readme/README_ES.md) | [Italiano](i18n/readme/README_IT.md) | [ไทย](i18n/readme/README_TH.md) | [Deutsch](i18n/readme/README_DE.md) | [Tiếng Việt](i18n/readme/README_VI.md) | [עִברִית](i18n/readme/README_HE.md) | [Tagalog](i18n/readme/README_TG.md) | [Polski](i18n/readme/README_PL.md) | [Arabic](i18n/readme/README_AR.md) | [Hungarian](i18n/readme/README_HU.md) | [Srpski](i18n/readme/README_RS.md) | [Română](i18n/readme/README_RO.md) | [Nederlands](i18n/readme/README_NL.md) | [Ελληνικά](i18n/readme/README_GR.md)
-
-## 🚩 Overview
-
-<div align="center">
-  <img src="./docs/static/img/eliza_diagram.png" alt="Eliza Diagram" width="100%" />
-</div>
-
-## ✨ Features
-
-- 🛠️ Full-featured Discord, X (Twitter) and Telegram connectors
-- 🔗 Support for every model (Llama, Grok, OpenAI, Anthropic, Gemini, etc.)
-- 👥 Multi-agent and room support
-- 📚 Easily ingest and interact with your documents
-- 💾 Retrievable memory and document store
-- 🚀 Highly extensible - create your own actions and clients
-- 📦 Just works!
-
-## Video Tutorials
-
-[AI Agent Dev School](https://www.youtube.com/watch?v=ArptLpQiKfI&list=PLx5pnFXdPTRzWla0RaOxALTSTnVq53fKL)
-
-## 🎯 Use Cases
-
-- 🤖 Chatbots
-- 🕵️ Autonomous Agents
-- 📈 Business Process Handling
-- 🎮 Video Game NPCs
-- 🧠 Trading
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- [Python 2.7+](https://www.python.org/downloads/)
-- [Node.js 23+](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
-- [pnpm](https://pnpm.io/installation)
-
-> **Note for Windows Users:** [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install-manual) is required.
-
-### Use the Starter (Recommended for Agent Creation)
-
-Full steps and documentation can be found in the [Eliza Starter Repository](https://github.com/elizaOS/eliza-starter).
-```bash
-git clone https://github.com/elizaos/eliza-starter.git
-cd eliza-starter
-cp .env.example .env
-pnpm i && pnpm build && pnpm start
-```
-
-### Manually Start Eliza (Only recommended for plugin or platform development)
-
-#### Checkout the latest release
-
-```bash
-# Clone the repository
-git clone https://github.com/elizaos/eliza.git
-
-# This project iterates fast, so we recommend checking out the latest release
-git checkout $(git describe --tags --abbrev=0)
-# If the above doesn't checkout the latest release, this should work:
-# git checkout $(git describe --tags `git rev-list --tags --max-count=1`)
-```
-
-If you would like the sample character files too, then run this:
-```bash
-# Download characters submodule from the character repos
-git submodule update --init
-```
-
-#### Edit the .env file
-
-Copy .env.example to .env and fill in the appropriate values.
-
-```
-cp .env.example .env
-```
-
-Note: .env is optional. If you're planning to run multiple distinct agents, you can pass secrets through the character JSON
-
-#### Start Eliza
-
-```bash
-pnpm i
-pnpm build
-pnpm start
-
-# The project iterates fast, sometimes you need to clean the project if you are coming back to the project
-pnpm clean
-```
-
-### Interact via Browser
-
-Once the agent is running, you should see the message to run "pnpm start:client" at the end.
-
-Open another terminal, move to the same directory, run the command below, then follow the URL to chat with your agent.
-
-```bash
-pnpm start:client
-```
-
-Then read the [Documentation](https://elizaos.github.io/eliza/) to learn how to customize your Eliza.
-
----
-
-### Automatically Start Eliza
-
-The start script provides an automated way to set up and run Eliza:
-
-```bash
-sh scripts/start.sh
-```
-
-For detailed instructions on using the start script, including character management and troubleshooting, see our [Start Script Guide](./docs/docs/guides/start-script.md).
-
-> **Note**: The start script handles all dependencies, environment setup, and character management automatically.
-
----
-
-### Modify Character
-
-1. Open `packages/core/src/defaultCharacter.ts` to modify the default character. Uncomment and edit.
-
-2. To load custom characters:
-    - Use `pnpm start --characters="path/to/your/character.json"`
-    - Multiple character files can be loaded simultaneously
-3. Connect with X (Twitter)
-    - change `"clients": []` to `"clients": ["twitter"]` in the character file to connect with X
-
----
-
-### Add more plugins
-
-1. run `npx elizaos plugins list` to get a list of available plugins or visit https://elizaos.github.io/registry/
-
-2. run `npx elizaos plugins add @elizaos-plugins/plugin-NAME` to install the plugin into your instance
-
-#### Additional Requirements
-
-You may need to install Sharp. If you see an error when starting up, try installing it with the following command:
-
-```
-pnpm install --include=optional sharp
-```
-
----
-
-## Using Your Custom Plugins
-Plugins that are not in the official registry for ElizaOS can be used as well. Here's how:
-
-### Installation
-
-1. Upload the custom plugin to the packages folder:
-
-```
-packages/
-├─plugin-example/
-├── package.json
-├── tsconfig.json
-├── src/
-│   ├── index.ts        # Main plugin entry
-│   ├── actions/        # Custom actions
-│   ├── providers/      # Data providers
-│   ├── types.ts        # Type definitions
-│   └── environment.ts  # Configuration
-├── README.md
-└── LICENSE
-```
-
-2. Add the custom plugin to your project's dependencies in the agent's package.json:
-
-```json
-{
-  "dependencies": {
-    "@elizaos/plugin-example": "workspace:*"
-  }
-}
-```
-
-3. Import the custom plugin to your agent's character.json
-
-```json
-  "plugins": [
-    "@elizaos/plugin-example",
-  ],
-```
-
----
-
-### Start Eliza with Gitpod
-
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/elizaos/eliza/tree/main)
-
----
-
-### Deploy Eliza in one click
-
-Use [Fleek](https://fleek.xyz/eliza/) to deploy Eliza in one click. This opens Eliza to non-developers and provides the following options to build your agent:
-1. Start with a template
-2. Build characterfile from scratch
-3. Upload pre-made characterfile
-
-Click [here](https://fleek.xyz/eliza/) to get started!
-
----
-
-### Community & contact
-
-- [GitHub Issues](https://github.com/elizaos/eliza/issues). Best for: bugs you encounter using Eliza, and feature proposals.
-- [elizaOS Discord](https://discord.gg/elizaos). Best for: hanging out with the elizaOS technical community
-- [DAO Discord](https://discord.gg/ai16z). Best for: hanging out with the larger non-technical community
-
-## Citation
-
-We now have a [paper](https://arxiv.org/pdf/2501.06781) you can cite for the Eliza OS:
-```bibtex
-@article{walters2025eliza,
-  title={Eliza: A Web3 friendly AI Agent Operating System},
-  author={Walters, Shaw and Gao, Sam and Nerd, Shakker and Da, Feng and Williams, Warren and Meng, Ting-Chien and Han, Hunter and He, Frank and Zhang, Allen and Wu, Ming and others},
-  journal={arXiv preprint arXiv:2501.06781},
-  year={2025}
-}
-```
-
-## Contributors
-
-<a href="https://github.com/elizaos/eliza/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=elizaos/eliza" alt="Eliza project contributors" />
-</a>
-
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=elizaos/eliza&type=Date)](https://star-history.com/#elizaos/eliza&Date)
-
-## 🛠️ System Requirements
-
-### Minimum Requirements
-- CPU: Dual-core processor
-- RAM: 4GB
-- Storage: 1GB free space
-- Internet connection: Broadband (1 Mbps+)
-
-### Software Requirements
-- Python 2.7+ (3.8+ recommended)
-- Node.js 23+
-- pnpm
+- Windows 10/11 or Linux or Mac
+- Node.js 23.3+
 - Git
 
-### Optional Requirements
-- GPU: For running local LLM models
-- Additional storage: For document storage and memory
-- Higher RAM: For running multiple agents
+> **💡 Windows Users:** It's recommended to use **Git Bash** instead of Command Prompt or PowerShell for better compatibility with the setup commands. If you encounter issues with CMD or PowerShell, switch to Git Bash which comes bundled with Git for Windows.
 
-## 📁 Project Structure
-```
-eliza/
-├── packages/
-│   ├── core/           # Core Eliza functionality
-│   ├── clients/        # Client implementations
-│   └── actions/        # Custom actions
-├── docs/              # Documentation
-├── scripts/           # Utility scripts
-└── examples/          # Example implementations
+## Setup Instructions
+
+### 1. Clone Repository
+
+Clone the CarbonTruth repository from GitHub:
+
+```powershell
+git clone https://github.com/CarbonSustain/carbontruth.git
 ```
 
-## 🤝 Contributing
+### 2. Navigate to CarbonTruth Directory
 
-We welcome contributions! Here's how you can help:
+Change to the CarbonTruth project directory:
 
-### Getting Started
-1. Fork the repository
-2. Create a new branch: `git checkout -b feature/your-feature-name`
-3. Make your changes
-4. Run tests: `pnpm test`
-5. Submit a pull request
+```powershell
+cd carbontruth/ElizaBots/CarbonTruth
+```
 
-### Types of Contributions
-- 🐛 Bug fixes
-- ✨ New features
-- 📚 Documentation improvements
-- 🌍 Translations
-- 🧪 Test improvements
+### 3. Verify Node.js Version
 
-### Code Style
-- Follow the existing code style
-- Add comments for complex logic
-- Update documentation for changes
-- Add tests for new features
+Ensure you have Node.js version 23.3+ installed:
+
+```powershell
+node --version
+```
+
+**If you don't have Node.js 23.3+ installed:**
+
+Download and install from [nodejs.org](https://nodejs.org/en/download) or use Windows Package Manager:
+
+
+### 4. Install pnpm Package Manager
+
+Install pnpm globally:
+
+```powershell
+npm install -g pnpm
+```
+
+Verify the installation:
+
+```powershell
+pnpm --version
+```
+
+### 5. Install Project Dependencies
+
+Install all required dependencies:
+
+```powershell
+pnpm install
+```
+
+**If you encounter a "no lock file" error:**
+
+```powershell
+pnpm install --no-lock-file
+```
+> This tells pnpm to proceed without relying on a `pnpm-lock.yaml` file.
+
+### 6. Fix Line Endings (Windows Only)
+
+For Windows users, convert shell script line endings:
+
+1. Open `client/version.sh` in VS Code
+2. Look at the bottom-right status bar - you'll see "CRLF"
+3. Click on "CRLF"
+4. Select "LF" from the dropdown menu
+5. Save the file (`Ctrl+S`)
+
+This converts Windows line endings (CRLF) to Unix line endings (LF) required for shell scripts.
+
+### 7. Build the Project
+
+Compile the project:
+
+```powershell
+pnpm build
+```
+
+### 8. Setup Environment Configuration
+
+Copy the example environment file:
+
+**PowerShell/CMD:**
+
+```powershell
+copy .env.example .env
+```
+
+**GitBash/Linux:**
+
+```bash
+cp .env.example .env
+```
+
+### 9. Configure Environment Variables
+
+Open the `.env` file in your editor and configure the following variables:
+
+```env
+# Twitter Credentials
+TWITTER_USERNAME=    # Your Twitter account username
+TWITTER_PASSWORD=    # Your Twitter account password
+TWITTER_EMAIL=       # Your Twitter account email
+
+# OpenAI Configuration
+OPENAI_API_KEY=      # Your OpenAI API key
+
+# Additional API Keys
+TOGETHER_API_KEY=    # Together AI API key
+GROQ_API_KEY=        # Groq API key 
+TINY_URL_API_KEY=    # TinyURL API key
+PEXEL_API_KEY=       # Pexels API key
+```
+
+>**Note**: The API keys mentioned above are essential for the bot to function properly. Other parameters are optional and can be ignored.
+
+### 10. Start the Bot
+
+Launch the CarbonTruth bot:
+
+```powershell
+pnpm start --characters="characters\CarbonTruth.json"
+```
+
+The `--characters` flag specifies the character configuration to load. You can customize or add your own JSON files in the `characters/` directory.
+
+> You should see logs in the terminal indicating that the bot has started and connected successfully. If not, revisit the `.env` configuration and check the logs for any errors.
+
+
+## Troubleshooting
+
+- **Build errors:** Ensure all dependencies are installed and Node.js version is correct
+- **Permission errors:** Run PowerShell as Administrator if needed
+- **Line ending issues:** Make sure to convert `version.sh` from CRLF to LF on Windows
+- **Environment errors:** Verify all required API keys are properly configured in `.env`
+- **Terminal compatibility issues:** If you encounter errors with PowerShell or CMD, switch to **Git Bash** for better Unix command compatibility
+
+
+
