@@ -69,15 +69,16 @@ class LocalEmbeddingModelManager {
             throw new Error("Local embedding not supported in browser");
         }
 
-        try {
-            const fs = await import("fs");
-            const cacheDir = (await this.getRootPath()) + "/cache/";
+        const fs = await import("fs");
+        const cacheDir = (await this.getRootPath()) + "/cache/";
 
+        try {
             if (!fs.existsSync(cacheDir)) {
                 fs.mkdirSync(cacheDir, { recursive: true });
             }
 
             elizaLogger.debug("Initializing BGE embedding model...");
+            elizaLogger.debug("Cache directory:", cacheDir);
 
             this.model = await FlagEmbedding.init({
                 cacheDir: cacheDir,
@@ -88,8 +89,45 @@ class LocalEmbeddingModelManager {
             elizaLogger.debug("BGE model initialized successfully");
         } catch (error) {
             elizaLogger.error("Failed to initialize BGE model:", error);
-            throw error;
+            elizaLogger.info("Attempting to reinstall BGE model...");
+            
+            try {
+                // Clear cache and reinstall
+                await this.clearCacheAndReinstall(fs, cacheDir);
+            } catch (reinstallError) {
+                elizaLogger.error("Failed to reinstall BGE model:", reinstallError);
+                // Reset state on failure
+                this.model = null;
+                this.initPromise = null;
+                this.initializationLock = false;
+                throw reinstallError;
+            }
         }
+    }
+
+    private async clearCacheAndReinstall(fs: any, cacheDir: string): Promise<void> {
+        elizaLogger.debug("Clearing cache directory for reinstallation...");
+        
+        // Remove existing cache directory
+        if (fs.existsSync(cacheDir)) {
+            fs.rmSync(cacheDir, { recursive: true, force: true });
+            elizaLogger.debug("Cache directory removed");
+        }
+        
+        // Recreate cache directory
+        fs.mkdirSync(cacheDir, { recursive: true });
+        elizaLogger.debug("Cache directory recreated");
+        
+        // Attempt to initialize again
+        elizaLogger.debug("Reinstalling BGE embedding model...");
+        
+        this.model = await FlagEmbedding.init({
+            cacheDir: cacheDir,
+            model: EmbeddingModel.BGESmallENV15,
+            maxLength: 512,
+        });
+        
+        elizaLogger.info("BGE model reinstalled successfully");
     }
 
     public async generateEmbedding(input: string): Promise<number[]> {
@@ -166,6 +204,35 @@ class LocalEmbeddingModelManager {
         }
         this.initPromise = null;
         this.initializationLock = false;
+    }
+
+    public async forceReinstall(): Promise<void> {
+        elizaLogger.info("Force reinstalling BGE embedding model...");
+        
+        // Reset all state
+        this.model = null;
+        this.initPromise = null;
+        this.initializationLock = false;
+        
+        try {
+            const fs = await import("fs");
+            const cacheDir = (await this.getRootPath()) + "/cache/";
+            
+            // Remove existing cache directory
+            if (fs.existsSync(cacheDir)) {
+                elizaLogger.debug("Removing existing cache directory:", cacheDir);
+                fs.rmSync(cacheDir, { recursive: true, force: true });
+                elizaLogger.debug("Cache directory removed successfully");
+            }
+            
+            // Force initialization
+            await this.initialize();
+            
+            elizaLogger.info("BGE embedding model reinstalled successfully");
+        } catch (error) {
+            elizaLogger.error("Failed to force reinstall BGE model:", error);
+            throw error;
+        }
     }
 
     // For testing purposes

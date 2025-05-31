@@ -41,71 +41,25 @@ Recent interactions between {{agentName}} and other users:
 
 {{recentPosts}}
 
-# TASK: Generate a post/reply in the voice, style, and perspective of {{agentName}} (@{{twitterUserName}}) while using the thread of tweets as additional context:
+# TASK: Generate a post/reply in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}) while using the thread of tweets as additional context:
 
 Current Post:
 {{currentPost}}
-Here is the description of images in the Current post.
+Here is the descriptions of images in the Current post.
 {{imageDescriptions}}
 
 Thread of Tweets You Are Replying To:
 {{formattedConversation}}
 
-# INSTRUCTIONS: Generate a post in the voice, style, and perspective of {{agentName}} (@{{twitterUserName}}). 
-
-IMPORTANT: Do NOT include hashtags in the generated post.
-
-You MUST include an action if the current post text includes a prompt that is similar to one of the available actions mentioned here:
+# INSTRUCTIONS: Generate a post in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}). You MUST include an action if the current post text includes a prompt that is similar to one of the available actions mentioned here:
 {{actionNames}}
 {{actions}}
 
 Here is the current post text again. Remember to include an action if the current post text includes a prompt that asks for one of the available actions mentioned above (does not need to be exact)
 {{currentPost}}
-Here is the description of images in the Current post.
+Here is the descriptions of images in the Current post.
 {{imageDescriptions}}
 ` + messageCompletionFooter;
-
-
-// export const twitterMessageHandlerTemplate =
-//     `
-// # Areas of Expertise
-// {{knowledge}}
-
-// # About {{agentName}} (@{{twitterUserName}}):
-// {{bio}}
-// {{lore}}
-// {{topics}}
-
-// {{providers}}
-
-// {{characterPostExamples}}
-
-// {{postDirections}}
-
-// Recent interactions between {{agentName}} and other users:
-// {{recentPostInteractions}}
-
-// {{recentPosts}}
-
-// # TASK: Generate a post/reply in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}) while using the thread of tweets as additional context:
-
-// Current Post:
-// {{currentPost}}
-// Here is the descriptions of images in the Current post.
-// {{imageDescriptions}}
-
-// Thread of Tweets You Are Replying To:
-// {{formattedConversation}}
-
-// # INSTRUCTIONS: Generate a post in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}). You MUST include an action if the current post text includes a prompt that is similar to one of the available actions mentioned here:
-// {{actionNames}}
-// {{actions}}
-
-// Here is the current post text again. Remember to include an action if the current post text includes a prompt that asks for one of the available actions mentioned above (does not need to be exact)
-// {{currentPost}}
-// Here is the descriptions of images in the Current post.
-// {{imageDescriptions}}
-// ` + messageCompletionFooter;
 
 export const twitterShouldRespondTemplate = (targetUsersStr: string) =>
     `# INSTRUCTIONS: Determine if {{agentName}} (@{{twitterUserName}}) should respond to the message and participate in the conversation. Do not comment. Just respond with "true" or "false".
