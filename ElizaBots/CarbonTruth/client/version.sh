@@ -9,13 +9,16 @@ if [ ! -f "${LERNA_FILE}" ]; then
   exit 1
 fi
 
+# Ensure src/lib directory exists
+mkdir -p src/lib
+
 # Check if we have write permissions to the destination directory
 if [ ! -w "src/lib" ]; then
   echo "Error: No write permission to src/lib directory."
   exit 1
 fi
 
-# Extract the version property from lerna.json using grep and awk
+# Extract the version property from lerna.json
 VERSION=$(grep -o '"version": *"[^"]*"' "$LERNA_FILE" | awk -F: '{ gsub(/[ ",]/, "", $2); print $2 }')
 
 # Check if version was successfully extracted
@@ -24,8 +27,7 @@ if [ -z "$VERSION" ]; then
   exit 1
 fi
 
-# Create or overwrite info.json with the version property
+# Write to info.json
 echo "{\"version\": \"$VERSION\"}" > src/lib/info.json
 
-# Confirm success
 echo "info.json created with version: $VERSION"
