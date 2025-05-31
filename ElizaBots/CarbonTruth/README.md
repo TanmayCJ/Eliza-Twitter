@@ -74,7 +74,7 @@ pnpm install
 **If you encounter a "no lock file" error:**
 
 ```powershell
-pnpm install --no-lock-file
+pnpm install --no-frozen-lockfile
 ```
 > This tells pnpm to proceed without relying on a `pnpm-lock.yaml` file.
 
