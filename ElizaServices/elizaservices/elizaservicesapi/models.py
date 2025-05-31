@@ -43,3 +43,33 @@ class DefaultTweet(BaseTweet):
 class CarbonSustainAITweet(BaseTweet):
     class Meta:
         db_table = 'carbonsustainai_tweets'
+
+class QueuedTweet(models.Model):
+    BOT_CHOICES = [
+        ('carbontruth', 'CarbonTruth'),
+        ('carbonsustainai', 'CarbonSustainAI'),
+        ('carbonrant', 'CarbonRant'),
+    ]
+
+    CATEGORY_CHOICES = [
+        ('news', 'News'),
+        ('personal', 'Personal'),
+    ]
+
+    url = models.URLField(blank=True, null=True)  # Optional for personal
+    bot = models.CharField(max_length=30, choices=BOT_CHOICES)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+
+    title = models.CharField(max_length=255, blank=True)
+    content = models.TextField(blank=True)
+
+    when_to_post = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    status = models.CharField(max_length=20, default='pending')  
+
+    class Meta:
+        db_table = 'queued_tweets'
+
+    def __str__(self):
+        return f"{self.bot} - {self.category} tweet scheduled at {self.when_to_post}"

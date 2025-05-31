@@ -1,13 +1,12 @@
 django>=4.0
 djangorestframework>=3.13
 python-decouple
-detoxify
 boto3
 pillow
 torch>=1.10.0
 sentence-transformers
-transformers
-huggingface-hub==0.10.1
+# transformers
+# huggingface-hub==0.10.1
 psycopg2-binary>=2.9.9
 beautifulsoup4>=4.9.3
 requests>=2.25.1

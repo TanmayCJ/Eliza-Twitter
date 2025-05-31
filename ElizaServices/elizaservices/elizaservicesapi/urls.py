@@ -11,13 +11,15 @@ from .views import (
     EnvironmentalNewsView,
     ImageGenView,
     PersonalityAnalysisView,
-    TwitterTrendsTimeframesView
+    TwitterTrendsTimeframesView,
+    QueuedTweetsView,
+    QueuedTweetDetailView
 )
 
 urlpatterns = [
     path('popularity/', PopularityScoreView.as_view(), name='popularity-score'),
-    path('compare_hashtags/', CompareHashtagsView.as_view(), name='compare-hashtags'),
     path('safety/', SafetyScoreView.as_view(), name='safety-score'),
+    path('compare_hashtags/', CompareHashtagsView.as_view(), name='compare-hashtags'),
     path('tweets/', TweetsView.as_view(), name='tweets'),
     path('tweets/latest/', LatestTweetView.as_view(), name='latest-tweet'),
     path('tweets/senders/', ValidSendersView.as_view(), name='valid-senders'),
@@ -27,4 +29,6 @@ urlpatterns = [
     path('imagegen/', ImageGenView.as_view(), name='imagegen'),
     path('personality-analysis/', PersonalityAnalysisView.as_view(), name='personality-analysis'),
     path('twitter-trends/timeframes/', TwitterTrendsTimeframesView.as_view(), name='twitter-trends-timeframes'),
+    path('queued-tweets/', QueuedTweetsView.as_view(), name='queued-tweets'),
+    path('queued-tweets/<int:pk>/', QueuedTweetDetailView.as_view(), name='queued-tweet-detail'),
 ]

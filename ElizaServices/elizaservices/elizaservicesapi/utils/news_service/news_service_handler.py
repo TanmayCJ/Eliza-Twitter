@@ -23,7 +23,7 @@ class NewsService:
 
     def fetch_environmental_news(self):
         user_prompt = textwrap.dedent(f"""
-            Search and compile the 10 latest news (preferably within the last 10 days) related to:
+            Search and compile the 5 latest news (exactlywithin the last 10 days) related to:
             - Environmental issues (e.g., climate change, conservation, pollution control)
             - Sustainability (renewable energy, eco-initiatives)
             - Conservation (wildlife, forests, oceans)
@@ -108,13 +108,18 @@ class NewsService:
                 for news_item in news_data.get('news', []):
                     summary = news_item.get('summary', '')
                     if summary:
-                        # Get emotion analysis
-                        emotion_analysis = self.text_emotion_service.analyze_emotions(summary, top_k=5)
-                        news_item['emotions'] = emotion_analysis['emotions']
-                        
-                        # Get personality analysis based on emotions
-                        personality_analysis = self.personality_service.analyze_personality(emotion_analysis['emotions'])
-                        news_item['matched_personality'] = personality_analysis['matched_personality']
+                        try:
+                            # Get emotion analysis
+                            emotion_analysis = self.text_emotion_service.analyze_emotions(summary, top_k=3)
+                            news_item['emotions'] = emotion_analysis['emotions']
+                            
+                            # Get personality analysis based on emotions
+                            personality_analysis = self.personality_service.analyze_personality(emotion_analysis['emotions'])
+                            news_item['matched_personality'] = personality_analysis['matched_personality']
+                        except Exception as e:
+                            # Set default values in case of error
+                            news_item['emotions'] = [{"emotion": "neutral", "score": 1.0}]
+                            news_item['matched_personality'] = "Neil deGrasse Tyson"
                 
                 return news_data
 

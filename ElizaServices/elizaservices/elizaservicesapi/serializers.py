@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CarbonTruthTweet, CarbonRantTweet, DefaultTweet, CarbonSustainAITweet
+from .models import CarbonTruthTweet, CarbonRantTweet, DefaultTweet, CarbonSustainAITweet, QueuedTweet
 
 class TweetSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,3 +21,12 @@ class DefaultTweetSerializer(TweetSerializer):
 class CarbonSustainAITweetSerializer(TweetSerializer):
     class Meta(TweetSerializer.Meta):
         model = CarbonSustainAITweet
+
+class QueuedTweetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QueuedTweet
+        fields = [
+            'id', 'url', 'bot', 'category', 'title', 'content',
+            'when_to_post', 'created_at', 'status'
+        ]
+        read_only_fields = ['created_at']
