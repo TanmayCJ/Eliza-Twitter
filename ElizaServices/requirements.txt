@@ -5,8 +5,6 @@ boto3
 pillow
 torch>=1.10.0
 sentence-transformers
-# transformers
-# huggingface-hub==0.10.1
 psycopg2-binary>=2.9.9
 beautifulsoup4>=4.9.3
 requests>=2.25.1

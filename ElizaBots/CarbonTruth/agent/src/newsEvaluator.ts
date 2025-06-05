@@ -5,14 +5,8 @@ const newsData = {
     lastUpdatedNews: new Date().toISOString() // Store time in ISO format
 };
 
-const imageData = {
-    isImg: true,
-    imgIds: [] // Initialize with an empty array
-};
-
-const hours = 0;
-const minutes = 0; 
-const seconds = 10; 
+const hours = 1;
+const minutes = 4; // 4 minutes
 
 export const newsEvaluator: Evaluator = {
     name: "NEWS_EVALUATOR",
@@ -21,48 +15,23 @@ export const newsEvaluator: Evaluator = {
     validate: async (runtime, message) => {
         elizaLogger.info("News evaluator called");
 
-        const agentKey = `${runtime.character.name}/newsUploadData`;
-        const agentUploadData = await runtime.cacheManager.get<{ isNews: boolean, lastUpdatedNews: string }>(agentKey);
+        const newsKey = `${runtime.character.name}/${message.userId}/newsUploadData`;
+        let newsUploadData = await runtime.cacheManager.get<{ isNews: boolean, lastUpdatedNews: string }>(newsKey);
 
-        const agentImageKey = `${runtime.character.name}/imageUploadData`;
-        const agentImageUploadData = await runtime.cacheManager.get<{ isImg: boolean, imgIds: string[] }>(agentImageKey);
-
-        
-
-        if (agentUploadData === undefined) { 
-            await runtime.cacheManager.set(agentKey, newsData);
+        if (newsUploadData === undefined) { 
+            await runtime.cacheManager.set(newsKey, newsData);
         }
-        if (agentImageUploadData === undefined) {
-            await runtime.cacheManager.set(agentImageKey, imageData);
-        }
-        // else {
-        //     const currentTime = new Date().toISOString();
-        //     const lastUpdatedTime = new Date(agentUploadData.lastUpdatedNews).getTime();
-        //     const timeDifference = new Date(currentTime).getTime() - lastUpdatedTime;
-           
-        //     const timeLimit = (hours * 60 * 60 * 1000) + (minutes * 60 * 1000) + (seconds * 1000); // Convert to milliseconds
+        else {
+            const currentTime = new Date().toISOString();
+            const lastUpdatedTime = new Date(newsUploadData.lastUpdatedNews).getTime();
+            const timeDifference = new Date(currentTime).getTime() - lastUpdatedTime;
+            const timeLimit = hours* (minutes * (60 * 1000)); // 24 hours in milliseconds
 
-        //     if (timeDifference > timeLimit) {
-        //         const agentData = {
-        //             isNews: true,
-        //             lastUpdatedNews: agentUploadData.lastUpdatedNews,
-        //         }
-        //         const imageData = {
-        //             isImg: false,
-        //             imgIds: agentImageUploadData.imgIds // Initialize with an empty array
-        //         };
-        //         await runtime.cacheManager.set(agentImageKey, imageData);
-        //         await runtime.cacheManager.set(agentKey, agentData);
-        //         elizaLogger.info("Updating news data:");
-        //     }
-        //     else {
-        //         const imageData2 = {
-        //             isImg: true,
-        //             imgIds: agentImageUploadData.imgIds // Initialize with an empty array
-        //         };
-        //         await runtime.cacheManager.set(agentImageKey, imageData2);
-        //     }
-        // }
+            if (timeDifference > timeLimit) {
+                newsUploadData.isNews = true; // Reset isNews after 24 hours
+                await runtime.cacheManager.set(newsKey, newsUploadData);
+            }
+        }
         
         return true;
     },
@@ -70,7 +39,7 @@ export const newsEvaluator: Evaluator = {
     handler: async (runtime, message) => {
         elizaLogger.log("News evaluator handler called");
 
-        const newsKey = `${runtime.character.name}/newsCount`;
+        const newsKey = `${runtime.character.name}/${message.userId}/newsCount`;
         let newsCount = await runtime.cacheManager.get<number>(newsKey);
 
         if (newsCount === undefined) {

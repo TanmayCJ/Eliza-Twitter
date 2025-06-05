@@ -10,7 +10,7 @@ import {
 } from "@elizaos/core";
 import dotenv from "dotenv";
 
-import { GoogleGenAI } from "@google/genai";
+// import { GoogleGenAI } from "@google/genai";
 
 import { OpenAI } from "openai";
 import { json } from "stream/consumers";

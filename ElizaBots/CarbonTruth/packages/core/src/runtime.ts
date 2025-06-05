@@ -1717,7 +1717,7 @@ Text: ${attachment.text}
                     ? formatEvaluatorExamples(evaluatorsData)
                     : "",
             providers: addHeader(
-                ``,
+                `# Additional Information About ${this.character.name} and The World`,
                 providers,
             ),
         };

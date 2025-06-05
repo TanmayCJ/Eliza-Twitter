@@ -486,7 +486,6 @@ const updatedGoal = {
 
 <details>
 <summary>View Full Goal Evaluator Implementation</summary>
-
 ```typescript
 import { composeContext } from "@elizaos/core";
 import { generateText } from "@elizaos/core";
