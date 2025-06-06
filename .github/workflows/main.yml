@@ -45,6 +45,4 @@
 #             cd ~/your-repo-folder/backend
 #             source venv/bin/activate
 #             python manage.py migrate
-#             systemctl restart gunicorn
-#             systemctl restart nginx
 #           EOF
