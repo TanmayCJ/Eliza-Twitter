@@ -17,7 +17,6 @@ from .utils.news_service import NewsService
 from .utils.imagegen_service import ImageGenServiceHandler
 from .utils.text_emotion_service import TextEmotionService
 from .utils.personality_service import PersonalityServiceHandler
-from .utils.twitter_trends_service import TwitterTrendsService
 from .models import CarbonTruthTweet, CarbonRantTweet, DefaultTweet, CarbonSustainAITweet, QueuedTweet
 from .serializers import (
     CarbonTruthTweetSerializer, CarbonRantTweetSerializer,
@@ -29,7 +28,6 @@ popularity_service = PopularityAPI()
 safety_service = SafetyService()
 text_emotion_service = TextEmotionService()
 personality_service = PersonalityServiceHandler()
-twitter_trends_service = TwitterTrendsService()
 
 SENDER_MODEL_MAP = {
     'carbontruth': (CarbonTruthTweet, CarbonTruthTweetSerializer),
@@ -199,35 +197,6 @@ class PersonalityAnalysisView(APIView):
         try:
             result = personality_service.analyze_personality(emotions)
             return Response(result, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-class TwitterTrendsView(APIView):
-    def get(self, request):
-        selected_index = request.query_params.get('timeframe_index', 0)
-        try:
-            selected_index = int(selected_index)
-            result = twitter_trends_service.get_trends(selected_index)
-            return Response(result, status=status.HTTP_200_OK)
-        except ValueError:
-            return Response(
-                {"error": "Invalid timeframe index. Must be a number."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-class TwitterTrendsTimeframesView(APIView):
-    def get(self, request):
-        try:
-            timeframes = twitter_trends_service.get_timeframes()
-            return Response(timeframes, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(
                 {"error": str(e)}, 
