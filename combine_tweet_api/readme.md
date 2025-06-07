@@ -40,21 +40,14 @@ source elizaservicevenv/bin/activate
 # 4. Install dependencies
 pip install -r requirements.txt
 
-# 5. Configure environment variables
-# Create a .env file in the directory and add:
-# (replace with your actual credentials)
-OPENAI_API_KEY=your_openai_key
-SAFETY_API_URL=https://your-safety-api-endpoint
-POPULARITY_API_URL=https://your-popularity-api-endpoint
-DJANGO_SECRET_KEY=your_django_secret
-DEBUG=True
 
-# 6. Set up the database
-python manage.py makemigrations
-python manage.py migrate combine_tweet --fake-initial
+
+# 5. Set up the database
+- python manage.py makemigrations
+- python manage.py migrate combine_tweet --fake-initial
 
 # 7. Run the development server
-python manage.py runserver
+- python manage.py runserver
 
 # Test it on Postman using the api endpoint
 - `POST /generate-combined`
