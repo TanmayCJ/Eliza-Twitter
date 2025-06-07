@@ -115,7 +115,7 @@ export function formatHandle(handle: string): string {
 }
 
 /**
- * Gets a list of recommended handles to tag based on tweet content
+ * Gets a list of recommended handles to tag based on tweet content 
  * 
  * @param content The tweet content to analyze
  * @param maxTags Maximum number of tags to return

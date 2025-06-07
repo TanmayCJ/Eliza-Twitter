@@ -16,6 +16,7 @@ export interface PersonalityConfig {
     name: string;
     percentage: number;
     description: string;
+    
 }
 
 /**
