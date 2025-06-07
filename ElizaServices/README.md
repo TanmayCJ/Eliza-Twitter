@@ -1,148 +1,86 @@
 # ElizaServices
 
-ElizaServices is a Django-based REST API service that provides various AI-powered text and image analysis capabilities, including popularity prediction, safety checking, and image captioning.
+**ElizaServices** is a Django-based REST API offering AI-powered text and image analysis tools. It includes capabilities like content popularity prediction, safety scoring, hashtag comparison, image captioning, personality and emotion detection, environmental news summarization, and smart tweet management.
 
-## Features
+---
 
-### 1. Popularity Prediction
-- Predicts the potential popularity of text content using advanced ML models
-- Provides popularity scores on a scale of 0-100
-- Supports hashtag comparison to find the most effective tags
+## 🚀 Features
 
-### 2. Safety Analysis
-- Analyzes text content for appropriateness
-- Uses the Toxic-BERT model for content moderation
-- Provides detailed toxicity scores across multiple categories
+### 🔥 1. Popularity Prediction
+- Predicts content popularity scores (0-100)
+- Accepts both text and image input
+- Supports hashtag comparison for engagement optimization
 
-### 3. Image Processing
-- Generates captions for images
-- Integrates image analysis with text analysis for comprehensive content evaluation
+### 🛡️ 2. Safety Analysis
+- Detects toxic or inappropriate language
+- Analyzes both raw text and image-derived captions
+- Provides category-wise toxicity scores
 
-### 4. Tweet Management
-- Supports multiple tweet types:
-  - CarbonTruth Tweets
-  - CarbonRant Tweets
-  - Default Tweets
-  - CarbonSustainAI Tweets
-- CRUD operations for tweet management
-- Latest tweet retrieval functionality
+### 🧠 3. Emotion & Personality Analysis
+- Extracts top emotional sentiments using AWS Comprehend
+- Matches emotions to predefined personality archetypes
 
-## API Endpoints
+### 🖼️ 4. Image Processing
+- Generates captions from uploaded images using AWS Rekognition
+- Fetches image URLs using keyword search via Pexels
 
-### Popularity Endpoints
-- `POST /api/popularity/`: Get popularity score for text/image content
-- `POST /api/compare_hashtags/`: Compare effectiveness of different hashtags
+### 🌍 5. Environmental News Summarizer
+- Uses LLMs to summarize climate-related news
+- Analyzes tone and personality traits of each article
 
-### Safety Endpoints
-- `POST /api/safety/`: Get safety analysis for text/image content
+### 🐦 6. Tweet Management
+- Supports different tweet types (e.g., CarbonTruth, CarbonRant)
+- Allows CRUD operations on tweets
+- Retrieves latest tweet per sender
+- Manages tweet queues with scheduling and filters
 
-### Tweet Endpoints
-- `GET/POST /api/tweets/`: List all tweets or create new tweet
-- `GET /api/tweets/latest/`: Get the most recent tweet
-- `GET /api/tweets/<tweet_id>/`: Get specific tweet details
-- `GET /api/tweets/senders/`: List all valid tweet sender types
+---
 
-## Setup and Installation
+## 🔗 API Endpoints
 
-1. Create a virtual environment:
-```bash
-python -m venv elizaservicevenv
-```
+### 📊 Popularity Endpoints
+| Endpoint                         | Method | Description                                  |
+|----------------------------------|--------|----------------------------------------------|
+| `/api/popularity/`              | POST   | Get popularity score for content (text/image) |
+| `/api/compare_hashtags/`        | POST   | Compare hashtags based on predicted score     |
 
-2. Activate the virtual environment:
-```bash
-# On Windows
-elizaservicevenv\Scripts\activate
-# On macOS/Linux
-source elizaservicevenv/bin/activate
-```
+### 🛡️ Safety Endpoints
+| Endpoint                         | Method | Description                                  |
+|----------------------------------|--------|----------------------------------------------|
+| `/api/safety/`                  | POST   | Get safety score for content (text/image)     |
 
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+### 🧠 Personality Analysis
+| Endpoint                         | Method | Description                                  |
+|----------------------------------|--------|----------------------------------------------|
+| `/api/personality-analysis/`    | POST   | Analyze personality from a list of emotions   |
 
-4. Set up environment variables in a `.env` file:
-```env
-SECRET_KEY=your_secret_key
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-```
+### 🌟 Emotion Detection
+> Internally used in personality and news modules via AWS Comprehend
 
-5. Run migrations:
-```bash
-python manage.py migrate
-```
+### 🖼️ Image Utilities
+| Endpoint                         | Method | Description                                  |
+|----------------------------------|--------|----------------------------------------------|
+| `/api/imagegen/`                | POST   | Get a relevant image URL from Pexels         |
 
-6. Start the development server:
-```bash
-python manage.py runserver
-```
+### 📰 Environmental News
+| Endpoint                         | Method | Description                                  |
+|----------------------------------|--------|----------------------------------------------|
+| `/api/news/`                    | GET    | Get recent environmental news by country     |
 
-## Dependencies
+### 🐦 Tweet Management
+| Endpoint                               | Method | Description                                      |
+|----------------------------------------|--------|--------------------------------------------------|
+| `/api/tweets/`                         | GET/POST | List or create tweet by sender type              |
+| `/api/tweets/latest/?sender=<type>`    | GET    | Get most recent tweet for a sender               |
+| `/api/tweets/<tweet_id>/?sender=<type>` | GET    | Get a specific tweet by ID                       |
+| `/api/tweets/senders/`                 | GET    | Get list of valid tweet sender types             |
 
-- Django >= 4.0
-- Django REST Framework >= 3.13
-- Python-decouple
-- Detoxify
-- Boto3
-- Pillow
-- PyTorch >= 1.10.0
-- Sentence-transformers
-- Transformers
-- Huggingface-hub == 0.10.1
-- psycopg2-binary >= 2.9.9
+### ⏳ Queued Tweet Management
+| Endpoint                                        | Method | Description                                      |
+|-------------------------------------------------|--------|--------------------------------------------------|
+| `/api/queued-tweets/`                          | GET/POST | List or create queued tweets (filters optional)  |
+| `/api/queued-tweets/<pk>/`                     | GET/PUT/DELETE | Get, update, or delete a specific queued tweet |
 
-## Project Structure
-elizaservices/
-├── elizaservices/ # Main Django project settings
-├── elizaservicesapi/ # Main API application
-│ ├── utils/
-│ │ ├── caption_service/ # Image captioning functionality
-│ │ ├── popularity_service/ # Popularity prediction
-│ │ └── safety_service/ # Content safety analysis
-│ ├── views.py # API endpoints
-│ ├── urls.py # URL routing
-│ ├── models.py # Data models
-│ └── serializers.py # Data serializers
-└── manage.py # Django management script
+---
 
-
-## API Usage Examples
-
-### Predict Content Popularity
-```bash
-curl -X POST http://localhost:8000/api/popularity/ \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Your content here"}'
-```
-
-### Check Content Safety
-```bash
-curl -X POST http://localhost:8000/api/safety/ \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Content to check"}'
-```
-
-### Compare Hashtags
-```bash
-curl -X POST http://localhost:8000/api/compare_hashtags/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "text": "Base content",
-    "hashtags": ["#tag1", "#tag2"],
-    "top_n": 1
-  }'
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-[Add your license information here]
+## ⚙️ Setup and Installation
