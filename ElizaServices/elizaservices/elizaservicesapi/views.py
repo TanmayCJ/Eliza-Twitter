@@ -16,7 +16,6 @@ from .utils.safety_service import SafetyService
 from .utils.news_service import NewsService
 from .utils.imagegen_service import ImageGenServiceHandler
 from .utils.text_emotion_service import TextEmotionService
-from .utils.personality_service import PersonalityServiceHandler
 from .models import CarbonTruthTweet, CarbonRantTweet, DefaultTweet, CarbonSustainAITweet, QueuedTweet
 from .serializers import (
     CarbonTruthTweetSerializer, CarbonRantTweetSerializer,
@@ -27,7 +26,7 @@ caption_service = CaptionService()
 popularity_service = PopularityAPI()
 safety_service = SafetyService()
 text_emotion_service = TextEmotionService()
-personality_service = PersonalityServiceHandler()
+
 
 SENDER_MODEL_MAP = {
     'carbontruth': (CarbonTruthTweet, CarbonTruthTweetSerializer),
@@ -183,25 +182,6 @@ class ImageGenView(APIView):
         imagegen_handler = ImageGenServiceHandler()
         image_url = imagegen_handler.fetch_image(keyword)
         return Response({"image_url": image_url})
-
-class PersonalityAnalysisView(APIView):
-    def post(self, request):
-        emotions = request.data.get("emotions", [])
-        
-        if not emotions:
-            return Response(
-                {"error": "Emotions data is required."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        try:
-            result = personality_service.analyze_personality(emotions)
-            return Response(result, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
 class QueuedTweetsView(APIView):
     def get(self, request):
