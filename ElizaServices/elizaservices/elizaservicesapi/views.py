@@ -1,6 +1,8 @@
 # Standard Library
 import json
 import requests
+from django.utils import timezone
+from django.http import Http404
 
 # Django REST Framework
 from rest_framework.views import APIView
@@ -16,10 +18,10 @@ from .utils.imagegen_service import ImageGenServiceHandler
 from .utils.text_emotion_service import TextEmotionService
 from .utils.personality_service import PersonalityServiceHandler
 from .utils.twitter_trends_service import TwitterTrendsService
-from .models import CarbonTruthTweet, CarbonRantTweet, DefaultTweet, CarbonSustainAITweet
+from .models import CarbonTruthTweet, CarbonRantTweet, DefaultTweet, CarbonSustainAITweet, QueuedTweet
 from .serializers import (
     CarbonTruthTweetSerializer, CarbonRantTweetSerializer,
-    DefaultTweetSerializer, CarbonSustainAITweetSerializer
+    DefaultTweetSerializer, CarbonSustainAITweetSerializer, QueuedTweetSerializer
 )
 
 caption_service = CaptionService()
@@ -231,3 +233,62 @@ class TwitterTrendsTimeframesView(APIView):
                 {"error": str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+class QueuedTweetsView(APIView):
+    def get(self, request):
+        """Get all queued tweets with optional filtering"""
+        bot = request.query_params.get('bot')
+        category = request.query_params.get('category')
+        status = request.query_params.get('status')
+        
+        queryset = QueuedTweet.objects.all()
+        
+        if bot:
+            queryset = queryset.filter(bot=bot)
+        if category:
+            queryset = queryset.filter(category=category)
+        if status:
+            queryset = queryset.filter(status=status)
+            # If status is pending, also filter by when_to_post
+            if status == 'pending':
+                current_time = timezone.now()
+                queryset = queryset.filter(when_to_post__lte=current_time).order_by('when_to_post')
+            
+        serializer = QueuedTweetSerializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    def post(self, request):
+        """Create a new queued tweet"""
+        serializer = QueuedTweetSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class QueuedTweetDetailView(APIView):
+    def get_object(self, pk):
+        try:
+            return QueuedTweet.objects.get(pk=pk)
+        except QueuedTweet.DoesNotExist:
+            raise Http404
+    
+    def get(self, request, pk):
+        """Get a specific queued tweet"""
+        queued_tweet = self.get_object(pk)
+        serializer = QueuedTweetSerializer(queued_tweet)
+        return Response(serializer.data)
+    
+    def put(self, request, pk):
+        """Update a queued tweet"""
+        queued_tweet = self.get_object(pk)
+        serializer = QueuedTweetSerializer(queued_tweet, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    def delete(self, request, pk):
+        """Delete a queued tweet"""
+        queued_tweet = self.get_object(pk)
+        queued_tweet.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

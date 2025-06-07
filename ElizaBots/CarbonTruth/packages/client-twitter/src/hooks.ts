@@ -134,7 +134,7 @@ export class TwitterPrePostHookHandler {
 
       return mediaData.length > 0 ? mediaData : tweetInfo.mediaData;
     } catch (error) {
-      elizaLogger.error("Error in pre-post hook:", error);
+      elizaLogger.error("Error in pre-post hook:", error as string);
       return tweetInfo.mediaData; // Return original media data on error
     }
   }

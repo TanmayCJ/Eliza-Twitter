@@ -10,7 +10,7 @@
       "model": ""
     }
   },
-  "plugins": ["@elizaos-plugins/plugin-twitter", "@elizaos-plugins/client-twitter"],
+  "plugins": ["@elizaos-plugins/client-twitter"],
   "bio": [
     "Spreads awareness about environmental issues through facts and data.",
     "Advocates for conservation, sustainability, and pollution reduction.",
