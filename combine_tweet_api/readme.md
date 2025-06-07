@@ -30,10 +30,12 @@ cd carbontruth/combine_tweet_api
 python -m venv venv
 
 # 3. Activate the virtual environment
-# On Linux/macOS:
-source venv/bin/activate
-# On Windows:
-venv\Scripts\activate
+```bash
+# On Windows
+elizaservicevenv\Scripts\activate
+# On macOS/Linux
+source elizaservicevenv/bin/activate
+```
 
 # 4. Install dependencies
 pip install -r requirements.txt
