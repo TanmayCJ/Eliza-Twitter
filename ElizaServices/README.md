@@ -124,7 +124,8 @@ python manage.py runserver
 - requests>=2.25.1
 
 
-## Project Structure
+## 🗂️ Project Structure
+```text
 elizaservices/
 ├── elizaservices/             # Django project settings
 ├── elizaservicesapi/          # Main API app
