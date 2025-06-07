@@ -8,8 +8,7 @@ import json
 import os
 import logging
 
-with open(os.path.join(settings.BASE_DIR, 'combine_tweet', 'character3.json')) as f:
-    CHARACTER = json.load(f)
+
 
 class TweetGenerator:
     def __init__(self):
@@ -33,8 +32,6 @@ class TweetGenerator:
         self.rant_weight = rant_weight
 
     def generate_prompt(self, carbon_text, rant_text):
-        primary_tone = ', '.join(CHARACTER['tone']['primary'])
-        secondary_tone = ', '.join(CHARACTER['tone']['secondary'])
 
         fact_length = int(len(carbon_text) * self.fact_weight)
         rant_length = int(len(rant_text) * self.rant_weight)
@@ -43,15 +40,15 @@ class TweetGenerator:
         rant_part = rant_text.strip()[:rant_length]
         print(fact_length, rant_length,fact_part, rant_part)
 
-        return f"""You are {CHARACTER['persona_name']}, a data-driven, friendly sustainability advocate.
+        return f"""You are carbonsustain, a data-driven, friendly sustainability advocate.
 
 IMPORTANT GUIDELINES:
 • Always start with a clear fact, stat, or policy observation
 • Keep tweets to 1-2 sentences, 0-2 emojis (🌍 🚀 ✅), and 1-2 relevant hashtags
 • Use a rhetorical question or call-to-action in ~25% of tweets
-• Only mention {CHARACTER['persona_name']} - and then in a single, lightly boastful sentence - if proposing a solution, announcing an initiative, partnership, tool, or responding as the company
-• That boast line should briefly state how {CHARACTER['persona_name']} is helping, innovating, or supporting the cause
-• Do NOT mention {CHARACTER['persona_name']} in purely observational, critical, or third-party contexts
+• Only mention carbonsustain - and then in a single, lightly boastful sentence - if proposing a solution, announcing an initiative, partnership, tool, or responding as the company
+• That boast line should briefly state how carbonsustain is helping, innovating, or supporting the cause
+• Do NOT mention carbonsustain in purely observational, critical, or third-party contexts
 
 Merge the following contents:
 FACT (about {self.fact_weight * 100:.0f}%): {fact_part}
@@ -64,11 +61,9 @@ Write the tweet following the guidelines above:"""
         rant_text, rant_urls = self.url_processor.extract_urls(rant_content)
         all_urls = carbon_urls + rant_urls
 
-        # Always use the normal blending approach, skip relatedness check
         prompt = self.generate_prompt(carbon_text, rant_text)
-        
         try:
-            combined = self.llm.generate(prompt)
+            combined = self.llm.generate(carbon_text, rant_text)
             combined = self._fix_truncation(combined)
 
             text, new_urls = self.url_processor.extract_urls(combined)
@@ -80,16 +75,29 @@ Write the tweet following the guidelines above:"""
                 if all_urls:
                     text = self.url_processor.append_urls_to_text(text, all_urls, self.char_limit)
 
-            #validated = self.validate_and_improve_tweet(text, all_urls)
-            validated = None
-            return validated if validated is not None else text
+            validated, safety_data, popularity_data = self.validate_and_improve_tweet(text, all_urls)
+            final_tweet = validated if validated is not None else text
+            return {
+                'tweet': final_tweet,
+                'extracted_urls': all_urls,
+                'safety_data': safety_data,
+                'popularity_data': popularity_data
+            }
         except Exception as e:
             logging.error("Error generating combined tweet: %s", str(e))
-            return "An error occurred while generating the tweet. Please try again."
+            return {
+                'tweet': "An error occurred while generating the tweet. Please try again.",
+                'extracted_urls': all_urls,
+                'safety_data': {'error': str(e)},
+                'popularity_data': {'error': str(e)}
+            }
 
     def validate_and_improve_tweet(self, tweet_text, urls=None):
         urls = urls or []
         safety_status, safety_data = self.api_client.call_api(self.safety_api, tweet_text)
+        print("safety_status", safety_status)
+        print("safety_data", safety_data)
+        print("Raw safety API response:", safety_data)
         retries = 0
         while safety_status != 'approved' and retries < self.max_retries:
             retries += 1
@@ -99,14 +107,17 @@ Write the tweet following the guidelines above:"""
                 if score > 0.8:
                     reason = f'safety - high {cat} score'
             retry_prompt = build_retry_prompt(reason, tweet_text)
-            new_text = self.llm.generate(retry_prompt)
+            new_text = self.llm.generate_from_prompt(retry_prompt)
             tweet_text, more_urls = self.url_processor.extract_urls(new_text)
             urls = list(set(urls + more_urls))
             safety_status, safety_data = self.api_client.call_api(self.safety_api, tweet_text)
         if safety_status != 'approved' and not self.proceed_regardless:
-            return None
+            return None, safety_data, None
 
         popularity_status, popularity_data = self.api_client.call_api(self.popularity_api, tweet_text)
+        print("popularity_status", popularity_status)
+        print("popularity_data", popularity_data)
+        print("Raw popularity API response:", popularity_data)
         retries = 0
         while popularity_status != 'approved' and retries < self.max_retries:
             retries += 1
@@ -116,17 +127,17 @@ Write the tweet following the guidelines above:"""
             elif isinstance(popularity_data, dict) and 'score' in popularity_data:
                 reason = f"popularity - low engagement score ({popularity_data['score']:.2f})"
             retry_prompt = build_retry_prompt(reason, tweet_text)
-            new_text = self.llm.generate(retry_prompt)
+            new_text = self.llm.generate_from_prompt(retry_prompt)
             tweet_text, more_urls = self.url_processor.extract_urls(new_text)
             urls = list(set(urls + more_urls))
             popularity_status, popularity_data = self.api_client.call_api(self.popularity_api, tweet_text)
         if popularity_status != 'approved' and not self.proceed_regardless:
-            return None
+            return None, safety_data, popularity_data
 
         if urls:
             tweet_text = self.url_processor.append_urls_to_text(tweet_text, urls, self.char_limit)
 
-        return tweet_text
+        return tweet_text, safety_data, popularity_data
 
     def _fix_truncation(self, text):
         if not text:

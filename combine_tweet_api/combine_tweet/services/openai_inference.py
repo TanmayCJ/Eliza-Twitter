@@ -230,3 +230,20 @@ Rant Tweet: "{rant_tweet}"
 
         print(generated)
         return generated
+
+    def generate_from_prompt(self, prompt, max_tokens=100, temperature=0.7):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini", 
+                messages=[
+                    {"role": "system", "content": system_instruction}, 
+                    {"role": "user", "content": prompt} 
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            generated = response.choices[0].message.content.strip() 
+        except Exception as e:
+            logging.error("Error generating tweet with OpenAI: %s", e)
+            generated = "An error occurred while generating the tweet. Please try again."
+        return generated

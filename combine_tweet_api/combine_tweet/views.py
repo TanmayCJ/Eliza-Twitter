@@ -2,15 +2,29 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from combine_tweet.services.db_manager import DatabaseManager
-from combine_tweet.services.openai_inference import TweetLLM
+from combine_tweet.services.tweet_generator import TweetGenerator
 from combine_tweet.services.url_processor import URLProcessor
+from combine_tweet.models import CombinedTweetResult
 
 
-# Instantiate the new TweetLLM
-llm_generator = TweetLLM()
+# Use TweetGenerator for full pipeline (including safety/popularity checks)
+generator = TweetGenerator()
 
 # Instantiate URLProcessor
 url_processor = URLProcessor()
+
+def extract_safety_score(safety_data):
+    if isinstance(safety_data, dict) and 'scores' in safety_data and safety_data['scores']:
+        return max(safety_data['scores'].values())
+    return None
+
+def extract_popularity_score(popularity_data):
+    if isinstance(popularity_data, dict):
+        if 'predicted_score' in popularity_data:
+            return popularity_data['predicted_score']
+        if 'score' in popularity_data:
+            return popularity_data['score']
+    return None
 
 @api_view(['GET'])
 def home(request):
@@ -29,35 +43,35 @@ def generate_combined(request):
     rant_content = entries['rant_tweet']['content'] or ""
     print("truth tweet\n",carbon_content,"\n\nrant tweet\n\n" ,rant_content)
 
-    # Use the new llm_generator and call its 'generate' method
-    tweet = llm_generator.generate(factual_tweet=carbon_content, rant_tweet=rant_content)
-    print(" the combines tweet is before url processing", "\n\n\n",tweet)
+    # Use the generator to get the tweet and all metadata
+    result = generator.generate_combined_tweet(carbon_content, rant_content)
+    tweet_with_urls = result['tweet']
+    all_source_urls = result['extracted_urls']
+    safety_data = result['safety_data']
+    popularity_data = result['popularity_data']
 
-    # --- Force URL Appending ---
-    # Extract URLs from source content
-    _, carbon_urls = url_processor.extract_urls(carbon_content)
-    _, rant_urls = url_processor.extract_urls(rant_content)
-    all_source_urls = carbon_urls + rant_urls
+    # Store in DB
+    safety_score = extract_safety_score(safety_data)
+    popularity_score = extract_popularity_score(popularity_data)
 
-    tweet_with_urls = tweet # Start with the generated tweet
-
-    # Append the first found URL if any exist, regardless of length
-    if all_source_urls:
-        first_url = all_source_urls[0]
-        # Ensure a space before appending the URL unless the tweet is empty
-        if tweet_with_urls and not tweet_with_urls.endswith(' '):
-             tweet_with_urls += ' '
-        tweet_with_urls += first_url
-
-    print(" the combines tweet is after force url appending", "\n\n\n", tweet_with_urls)
-    # --- End Force URL Appending ---
+    CombinedTweetResult.objects.create(
+        combined_tweet=tweet_with_urls,
+        factual_tweet=carbon_content,
+        rant_tweet=rant_content,
+        extracted_urls=all_source_urls,
+        popularity_score=popularity_score,
+        safety_score=safety_score,
+    )
 
     return Response({
         'tweet': tweet_with_urls, # Return the tweet with URL appended
         'sources': {
             'carbon_tweet': carbon_content,
             'rant_tweet': rant_content
-        }
+        },
+        'safety_data': safety_data,
+        'popularity_data': popularity_data,
+        'extracted_urls': all_source_urls
     })
 
 @api_view(['POST'])
@@ -75,35 +89,35 @@ def generate_combined_post(request):
 
     print("truth tweet\n",carbon_content,"\n\nrant tweet\n\n" ,rant_content)
 
-    tweet = llm_generator.generate(factual_tweet=carbon_content, rant_tweet=rant_content)
-    print(" the combines tweet is before url processing", "\n\n\n",tweet)
+    # Use the generator to get the tweet and all metadata
+    result = generator.generate_combined_tweet(carbon_content, rant_content)
+    tweet_with_urls = result['tweet']
+    all_source_urls = result['extracted_urls']
+    safety_data = result['safety_data']
+    popularity_data = result['popularity_data']
 
-    # --- Force URL Appending ---
-    # Extract URLs from source content
-    url_processor_post = URLProcessor() # Instantiate locally for this function
-    _, carbon_urls = url_processor_post.extract_urls(carbon_content)
-    _, rant_urls = url_processor_post.extract_urls(rant_content)
-    all_source_urls = carbon_urls + rant_urls
+    # Store in DB
+    safety_score = extract_safety_score(safety_data)
+    popularity_score = extract_popularity_score(popularity_data)
 
-    tweet_with_urls = tweet # Start with the generated tweet
-
-    # Append the first found URL if any exist, regardless of length
-    if all_source_urls:
-        first_url = all_source_urls[0]
-        # Ensure a space before appending the URL unless the tweet is empty
-        if tweet_with_urls and not tweet_with_urls.endswith(' '):
-             tweet_with_urls += ' '
-        tweet_with_urls += first_url
-
-    print(" the combines tweet is after force url appending", "\n\n\n", tweet_with_urls)
-    # --- End Force URL Appending ---
+    CombinedTweetResult.objects.create(
+        combined_tweet=tweet_with_urls,
+        factual_tweet=carbon_content,
+        rant_tweet=rant_content,
+        extracted_urls=all_source_urls,
+        popularity_score=popularity_score,
+        safety_score=safety_score,
+    )
 
     return Response({
         'tweet': tweet_with_urls, # Return the tweet with URL appended
         'sources': {
             'carbon_tweet': carbon_content,
             'rant_tweet': rant_content
-        }
+        },
+        'safety_data': safety_data,
+        'popularity_data': popularity_data,
+        'extracted_urls': all_source_urls
     })
 
 @api_view(['GET'])
@@ -116,7 +130,7 @@ def test_with_sample(request):
     if 'carbon_tweet' not in data or 'rant_tweet' not in data:
         return Response({'error': 'Missing required sample tweets'}, status=400)
 
-    tweet = llm_generator.generate(factual_tweet=data['carbon_tweet'], rant_tweet=data['rant_tweet'])
+    tweet = generator.generate_combined_tweet(data['carbon_tweet'], data['rant_tweet'])['tweet']
 
     # --- Force URL Appending for test_with_sample ---
     url_processor_test = URLProcessor() # Instantiate locally for this function
