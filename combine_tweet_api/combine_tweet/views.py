@@ -42,16 +42,13 @@ def generate_combined(request):
     carbon_content = entries['carbon_tweet']['content'] or ""
     rant_content = entries['rant_tweet']['content'] or ""
     print("truth tweet\n",carbon_content,"\n\nrant tweet\n\n" ,rant_content)
-
-    # Use the generator to get the tweet and all metadata
     result = generator.generate_combined_tweet(carbon_content, rant_content)
     tweet_with_urls = result['tweet']
     all_source_urls = result['extracted_urls']
-    safety_data = result['safety_data']
+    safety_score = result['safety_data']  # Store the full safety API result
     popularity_data = result['popularity_data']
 
     # Store in DB
-    safety_score = extract_safety_score(safety_data)
     popularity_score = extract_popularity_score(popularity_data)
 
     CombinedTweetResult.objects.create(
@@ -60,7 +57,7 @@ def generate_combined(request):
         rant_tweet=rant_content,
         extracted_urls=all_source_urls,
         popularity_score=popularity_score,
-        safety_score=safety_score,
+        safety_score=safety_score
     )
 
     return Response({
@@ -69,7 +66,7 @@ def generate_combined(request):
             'carbon_tweet': carbon_content,
             'rant_tweet': rant_content
         },
-        'safety_data': safety_data,
+        'safety_data': safety_score,
         'popularity_data': popularity_data,
         'extracted_urls': all_source_urls
     })
@@ -93,11 +90,10 @@ def generate_combined_post(request):
     result = generator.generate_combined_tweet(carbon_content, rant_content)
     tweet_with_urls = result['tweet']
     all_source_urls = result['extracted_urls']
-    safety_data = result['safety_data']
+    safety_score = result['safety_data']  # Store the full safety API result
     popularity_data = result['popularity_data']
 
     # Store in DB
-    safety_score = extract_safety_score(safety_data)
     popularity_score = extract_popularity_score(popularity_data)
 
     CombinedTweetResult.objects.create(
@@ -106,7 +102,7 @@ def generate_combined_post(request):
         rant_tweet=rant_content,
         extracted_urls=all_source_urls,
         popularity_score=popularity_score,
-        safety_score=safety_score,
+        safety_score=safety_score
     )
 
     return Response({
@@ -115,7 +111,7 @@ def generate_combined_post(request):
             'carbon_tweet': carbon_content,
             'rant_tweet': rant_content
         },
-        'safety_data': safety_data,
+        'safety_data': safety_score,
         'popularity_data': popularity_data,
         'extracted_urls': all_source_urls
     })

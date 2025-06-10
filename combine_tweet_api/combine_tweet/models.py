@@ -22,8 +22,8 @@ class CombinedTweetResult(models.Model):
     factual_tweet = models.TextField()
     rant_tweet = models.TextField()
     extracted_urls = models.JSONField(default=list)
-    popularity_score = models.JSONField(null=True, blank=True)  # or FloatField if just a number
-    safety_score = models.JSONField(null=True, blank=True)      # or FloatField if just a number
+    popularity_score = models.JSONField(null=True, blank=True) 
+    safety_score = models.JSONField(null=True, blank=True)     
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

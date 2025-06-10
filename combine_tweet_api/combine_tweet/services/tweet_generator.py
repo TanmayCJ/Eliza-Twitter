@@ -95,9 +95,7 @@ Write the tweet following the guidelines above:"""
     def validate_and_improve_tweet(self, tweet_text, urls=None):
         urls = urls or []
         safety_status, safety_data = self.api_client.call_api(self.safety_api, tweet_text)
-        print("safety_status", safety_status)
         print("safety_data", safety_data)
-        print("Raw safety API response:", safety_data)
         retries = 0
         while safety_status != 'approved' and retries < self.max_retries:
             retries += 1
@@ -115,9 +113,7 @@ Write the tweet following the guidelines above:"""
             return None, safety_data, None
 
         popularity_status, popularity_data = self.api_client.call_api(self.popularity_api, tweet_text)
-        print("popularity_status", popularity_status)
         print("popularity_data", popularity_data)
-        print("Raw popularity API response:", popularity_data)
         retries = 0
         while popularity_status != 'approved' and retries < self.max_retries:
             retries += 1
