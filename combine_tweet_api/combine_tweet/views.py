@@ -45,7 +45,7 @@ def generate_combined(request):
     result = generator.generate_combined_tweet(carbon_content, rant_content)
     tweet_with_urls = result['tweet']
     all_source_urls = result['extracted_urls']
-    safety_score = result['safety_data']  # Store the full safety API result
+    safety_score = result['safety_data']  #storing the full safety API result
     popularity_data = result['popularity_data']
 
     # Store in DB
