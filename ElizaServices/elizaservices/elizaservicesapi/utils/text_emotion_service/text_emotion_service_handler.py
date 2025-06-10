@@ -37,6 +37,7 @@ class TextEmotionService:
             }
         except Exception as e:
             # Return neutral emotions in case of error
+            print(e)
             return {
                 "emotions": [
                     {"emotion": "neutral", "score": 1.0}
