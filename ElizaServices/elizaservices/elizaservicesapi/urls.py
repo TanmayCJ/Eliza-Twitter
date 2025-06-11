@@ -8,8 +8,7 @@ from .views import (
     ValidSendersView,
     EnvironmentalNewsView,
     ImageGenView,
-    QueuedTweetsView,
-    QueuedTweetDetailView
+    QueuedTweetView
 )
 
 urlpatterns = [
@@ -25,6 +24,5 @@ urlpatterns = [
 
     path('imagegen/', ImageGenView.as_view(), name='imagegen'),
 
-    path('queued-tweets/', QueuedTweetsView.as_view(), name='queued-tweets'),
-    path('queued-tweets/<int:pk>/', QueuedTweetDetailView.as_view(), name='queued-tweet-detail')
+    path('queuedtweets/', QueuedTweetView.as_view(), name='queued-tweet-detail'),
 ]
