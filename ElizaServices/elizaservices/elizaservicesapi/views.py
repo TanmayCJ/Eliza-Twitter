@@ -154,22 +154,6 @@ class LatestTweetView(APIView):
         serializer = serializer_class(latest_tweet)
         return Response(serializer.data)
 
-class SingleTweetView(APIView):
-    def get(self, request, tweet_id):
-        sender = request.query_params.get('sender', '').lower()
-        if sender not in SENDER_MODEL_MAP:
-            return Response(
-                {"error": f"Invalid sender. Valid senders are: {list(SENDER_MODEL_MAP.keys())}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        model, serializer_class = SENDER_MODEL_MAP[sender]
-        try:
-            tweet = model.objects.get(tweet_id=tweet_id)
-        except model.DoesNotExist:
-            return Response({"error": "Tweet not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = serializer_class(tweet)
-        return Response(serializer.data)
-
 class ValidSendersView(APIView):
     def get(self, request):
         return Response(list(SENDER_MODEL_MAP.keys()), status=status.HTTP_200_OK)

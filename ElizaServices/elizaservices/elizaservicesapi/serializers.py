@@ -23,10 +23,15 @@ class CarbonSustainAITweetSerializer(TweetSerializer):
         model = CarbonSustainAITweet
 
 class QueuedTweetSerializer(serializers.ModelSerializer):
+    content = serializers.ListField(
+        child=serializers.CharField(),
+        allow_empty=True
+    )
+
     class Meta:
         model = QueuedTweet
         fields = [
-            'id', 'url', 'bot', 'category', 'title', 'content',
+            'id', 'url', 'bot', 'category', 'content',
             'when_to_post', 'created_at', 'status'
         ]
         read_only_fields = ['created_at']

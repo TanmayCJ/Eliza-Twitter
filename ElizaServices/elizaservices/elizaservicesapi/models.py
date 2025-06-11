@@ -56,20 +56,23 @@ class QueuedTweet(models.Model):
         ('personal', 'Personal'),
     ]
 
-    url = models.URLField(blank=True, null=True)  # Optional for personal
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('scheduled', 'Scheduled'),
+        ('posted', 'Posted'),
+        ('failed', 'Failed'),
+    ]
+
+    url = models.URLField(blank=True, null=True) 
     bot = models.CharField(max_length=30, choices=BOT_CHOICES)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
-
-    title = models.CharField(max_length=255, blank=True)
-    content = models.TextField(blank=True)
-
+    content = ArrayField(models.TextField())
     when_to_post = models.DateTimeField()
     created_at = models.DateTimeField(auto_now_add=True)
-
-    status = models.CharField(max_length=20, default='pending')  
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     class Meta:
         db_table = 'queued_tweets'
 
     def __str__(self):
-        return f"{self.bot} - {self.category} tweet scheduled at {self.when_to_post}"
+        return f"{self.bot} - {self.category} tweet(s) scheduled at {self.when_to_post}"

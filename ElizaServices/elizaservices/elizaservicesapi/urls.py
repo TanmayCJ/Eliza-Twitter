@@ -5,7 +5,6 @@ from .views import (
     SafetyScoreView, 
     TweetsView,
     LatestTweetView,
-    SingleTweetView,
     ValidSendersView,
     EnvironmentalNewsView,
     ImageGenView,
@@ -21,7 +20,6 @@ urlpatterns = [
     path('tweets/', TweetsView.as_view(), name='tweets'),
     path('tweets/latest/', LatestTweetView.as_view(), name='latest-tweet'),
     path('tweets/senders/', ValidSendersView.as_view(), name='valid-senders'),
-    path('tweets/<str:tweet_id>/', SingleTweetView.as_view(), name='tweet-detail'),
 
     path('news/', EnvironmentalNewsView.as_view(), name='environmental-news'),
 
