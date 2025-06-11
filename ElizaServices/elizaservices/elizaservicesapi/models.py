@@ -16,23 +16,7 @@ class BaseTweet(BaseMainTweet):
 
     class Meta:
         abstract = True
-
-class CarbonTruthTweet(BaseTweet):
-    class Meta:
-        db_table = 'carbontruth_tweets'
-
-class CarbonRantTweet(BaseTweet):
-    class Meta:
-        db_table = 'carbonrant_tweets'
-
-class DefaultTweet(BaseTweet):
-    class Meta:
-        db_table = 'default_tweets'
-
-class CarbonSustainAITweet(BaseTweet):
-    class Meta:
-        db_table = 'carbonsustainai_tweets'
-
+        
 class BaseQueuedTweet(BaseMainTweet):
     BOT_CHOICES = [
         ('carbontruth', 'CarbonTruth'),
@@ -58,6 +42,22 @@ class BaseQueuedTweet(BaseMainTweet):
 
     class Meta:
         abstract = True
+
+class CarbonTruthTweet(BaseTweet):
+    class Meta:
+        db_table = 'carbontruth_tweets'
+
+class CarbonRantTweet(BaseTweet):
+    class Meta:
+        db_table = 'carbonrant_tweets'
+
+class DefaultTweet(BaseTweet):
+    class Meta:
+        db_table = 'default_tweets'
+
+class CarbonSustainAITweet(BaseTweet):
+    class Meta:
+        db_table = 'carbonsustainai_tweets'
 
 class QueuedTweet(BaseQueuedTweet):
     class Meta:
