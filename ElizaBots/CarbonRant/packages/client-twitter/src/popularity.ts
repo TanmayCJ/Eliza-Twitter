@@ -38,11 +38,14 @@ export async function checkTweetPopularity(tweetText: string): Promise<{
     if (!response.ok) {
       elizaLogger.error(`❌ Popularity check failed with status: ${response.status}`);
       return null;
-    }    const data = await response.json() as PopularityCheckResult;
+    }
+    
+    const data = await response.json() as PopularityCheckResult;
     
     // Format the score to 2 decimal places
     const formattedScore = data.predicted_score.toFixed(2);
-      // Make the terminal output more eye-catching with a box display and colors
+    
+    // Make the terminal output more eye-catching with a box display and colors
     // Color codes: \x1b[36m = cyan, \x1b[32m = green, \x1b[33m = yellow, \x1b[0m = reset
     console.log("\n" + "\x1b[36m" + "=".repeat(80) + "\x1b[0m");
     
@@ -58,19 +61,16 @@ export async function checkTweetPopularity(tweetText: string): Promise<{
     console.log("\x1b[36m" + "-".repeat(80) + "\x1b[0m");
     console.log(`💬 TWEET: "\x1b[33m${tweetText}\x1b[0m"`);
     console.log("\x1b[36m" + "-".repeat(80) + "\x1b[0m");
-    console.log(`📝 \x1b[32m${data.explanation}\x1b[0m`);
-    console.log("\x1b[36m" + "=".repeat(80) + "\x1b[0m" + "\n");
-    
-    // Still log with elizaLogger for consistency with other logs
-    elizaLogger.log(`📊 Popularity score: ${formattedScore} - ${data.explanation}`);
-    
+    console.log(`📝 EXPLANATION: \x1b[32m${data.explanation}\x1b[0m`);
+    console.log("\x1b[36m" + "=".repeat(80) + "\x1b[0m\n");
+
     return {
       score: data.predicted_score,
       explanation: data.explanation,
-      originalText: tweetText
+      originalText: tweetText,
     };
   } catch (error) {
-    elizaLogger.error("❌ Error checking tweet popularity:", error);
+    elizaLogger.error(`Error checking tweet popularity:`, error);
     return null;
   }
 }
