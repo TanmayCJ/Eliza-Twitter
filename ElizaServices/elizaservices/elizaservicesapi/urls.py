@@ -5,12 +5,10 @@ from .views import (
     SafetyScoreView, 
     TweetsView,
     LatestTweetView,
-    SingleTweetView,
     ValidSendersView,
     EnvironmentalNewsView,
     ImageGenView,
-    QueuedTweetsView,
-    QueuedTweetDetailView
+    QueuedTweetView
 )
 
 urlpatterns = [
@@ -21,12 +19,10 @@ urlpatterns = [
     path('tweets/', TweetsView.as_view(), name='tweets'),
     path('tweets/latest/', LatestTweetView.as_view(), name='latest-tweet'),
     path('tweets/senders/', ValidSendersView.as_view(), name='valid-senders'),
-    path('tweets/<str:tweet_id>/', SingleTweetView.as_view(), name='tweet-detail'),
 
     path('news/', EnvironmentalNewsView.as_view(), name='environmental-news'),
 
     path('imagegen/', ImageGenView.as_view(), name='imagegen'),
 
-    path('queued-tweets/', QueuedTweetsView.as_view(), name='queued-tweets'),
-    path('queued-tweets/<int:pk>/', QueuedTweetDetailView.as_view(), name='queued-tweet-detail')
+    path('queuedtweets/', QueuedTweetView.as_view(), name='queued-tweet-detail'),
 ]

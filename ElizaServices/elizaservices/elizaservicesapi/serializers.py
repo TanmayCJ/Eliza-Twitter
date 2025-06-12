@@ -1,32 +1,55 @@
 from rest_framework import serializers
-from .models import CarbonTruthTweet, CarbonRantTweet, DefaultTweet, CarbonSustainAITweet, QueuedTweet
+from .models import (
+    CarbonTruthTweet,
+    CarbonRantTweet,
+    DefaultTweet,
+    CarbonSustainAITweet,
+    QueuedTweet
+)
 
-class TweetSerializer(serializers.ModelSerializer):
+class CarbonTruthTweetSerializer(serializers.ModelSerializer):
     class Meta:
-        model = None  # Will be set by child classes
-        fields = ['id', 'tweet_id', 'date', 'time', 'content', 'tweet_link', 'hashtags', 'image_urls', 'created_at']
-
-class CarbonTruthTweetSerializer(TweetSerializer):
-    class Meta(TweetSerializer.Meta):
         model = CarbonTruthTweet
+        fields = [
+            'id', 'tweet_id', 'content', 'tweet_link',
+            'hashtags', 'image_urls', 'created_at'
+        ]
+        read_only_fields = ['created_at']
 
-class CarbonRantTweetSerializer(TweetSerializer):
-    class Meta(TweetSerializer.Meta):
+class CarbonRantTweetSerializer(serializers.ModelSerializer):
+    class Meta:
         model = CarbonRantTweet
+        fields = [
+            'id', 'tweet_id', 'content', 'tweet_link',
+            'hashtags', 'image_urls', 'created_at'
+        ]
+        read_only_fields = ['created_at']
 
-class DefaultTweetSerializer(TweetSerializer):
-    class Meta(TweetSerializer.Meta):
+class DefaultTweetSerializer(serializers.ModelSerializer):
+    class Meta:
         model = DefaultTweet
+        fields = [
+            'id', 'tweet_id', 'content', 'tweet_link',
+            'hashtags', 'image_urls', 'created_at'
+        ]
+        read_only_fields = ['created_at']
 
-class CarbonSustainAITweetSerializer(TweetSerializer):
-    class Meta(TweetSerializer.Meta):
+class CarbonSustainAITweetSerializer(serializers.ModelSerializer):
+    class Meta:
         model = CarbonSustainAITweet
+        fields = [
+            'id', 'tweet_id', 'content', 'tweet_link',
+            'hashtags', 'image_urls', 'created_at'
+        ]
+        read_only_fields = ['created_at']
 
 class QueuedTweetSerializer(serializers.ModelSerializer):
+    content = serializers.CharField()
+
     class Meta:
         model = QueuedTweet
         fields = [
-            'id', 'url', 'bot', 'category', 'title', 'content',
-            'when_to_post', 'created_at', 'status'
+            'id', 'content', 'hashtags', 'bot', 'category',
+            'url', 'when_to_post', 'created_at', 'status'
         ]
         read_only_fields = ['created_at']

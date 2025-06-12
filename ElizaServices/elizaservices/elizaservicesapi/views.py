@@ -154,22 +154,6 @@ class LatestTweetView(APIView):
         serializer = serializer_class(latest_tweet)
         return Response(serializer.data)
 
-class SingleTweetView(APIView):
-    def get(self, request, tweet_id):
-        sender = request.query_params.get('sender', '').lower()
-        if sender not in SENDER_MODEL_MAP:
-            return Response(
-                {"error": f"Invalid sender. Valid senders are: {list(SENDER_MODEL_MAP.keys())}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        model, serializer_class = SENDER_MODEL_MAP[sender]
-        try:
-            tweet = model.objects.get(tweet_id=tweet_id)
-        except model.DoesNotExist:
-            return Response({"error": "Tweet not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = serializer_class(tweet)
-        return Response(serializer.data)
-
 class ValidSendersView(APIView):
     def get(self, request):
         return Response(list(SENDER_MODEL_MAP.keys()), status=status.HTTP_200_OK)
@@ -183,61 +167,26 @@ class ImageGenView(APIView):
         image_url = imagegen_handler.fetch_image(keyword)
         return Response({"image_url": image_url})
 
-class QueuedTweetsView(APIView):
-    def get(self, request):
-        """Get all queued tweets with optional filtering"""
-        bot = request.query_params.get('bot')
-        category = request.query_params.get('category')
-        status = request.query_params.get('status')
-        
-        queryset = QueuedTweet.objects.all()
-        
-        if bot:
-            queryset = queryset.filter(bot=bot)
-        if category:
-            queryset = queryset.filter(category=category)
-        if status:
-            queryset = queryset.filter(status=status)
-            # If status is pending, also filter by when_to_post
-            if status == 'pending':
-                current_time = timezone.now()
-                queryset = queryset.filter(when_to_post__lte=current_time).order_by('when_to_post')
-            
-        serializer = QueuedTweetSerializer(queryset, many=True)
-        return Response(serializer.data)
-    
+class QueuedTweetView(APIView):
     def post(self, request):
-        """Create a new queued tweet"""
-        serializer = QueuedTweetSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        sender = request.data.get("sender", "").lower()
 
-class QueuedTweetDetailView(APIView):
-    def get_object(self, pk):
-        try:
-            return QueuedTweet.objects.get(pk=pk)
-        except QueuedTweet.DoesNotExist:
-            raise Http404
-    
-    def get(self, request, pk):
-        """Get a specific queued tweet"""
-        queued_tweet = self.get_object(pk)
-        serializer = QueuedTweetSerializer(queued_tweet)
-        return Response(serializer.data)
-    
-    def put(self, request, pk):
-        """Update a queued tweet"""
-        queued_tweet = self.get_object(pk)
-        serializer = QueuedTweetSerializer(queued_tweet, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    def delete(self, request, pk):
-        """Delete a queued tweet"""
-        queued_tweet = self.get_object(pk)
-        queued_tweet.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if sender not in SENDER_MODEL_MAP:
+            return Response(
+                {"error": f"Invalid sender. Valid senders are: {list(SENDER_MODEL_MAP.keys())}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        now = timezone.now()
+
+        queued = QueuedTweet.objects.filter(
+            bot=sender,
+            status="pending",
+            when_to_post__lte=now
+        ).order_by("when_to_post").first()
+
+        if not queued:
+            return Response({"message": "No queued tweets ready to post."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = QueuedTweetSerializer(queued)
+        return Response(serializer.data, status=status.HTTP_200_OK)
