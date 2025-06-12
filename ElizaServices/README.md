@@ -69,8 +69,8 @@
 ### ⏳ Queued Tweet Management
 | Endpoint                                        | Method | Description                                      |
 |-------------------------------------------------|--------|--------------------------------------------------|
-| `/api/queued-tweets/`                          | GET/POST | List or create queued tweets (filters optional)  |
-| `/api/queued-tweets/<pk>/`                     | GET/PUT/DELETE | Get, update, or delete a specific queued tweet |
+| `/api/queuedtweets/`                          | POST | List pending tweets |
+
 
 ---
 
