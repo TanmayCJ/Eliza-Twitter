@@ -82,7 +82,7 @@ Pip version: 23.0.1
 1. Create a virtual environment:Add commentMore actions
 ```bash
 python -m venv elizaservicevenv
-# On Windows
+# OR
 python3 -m venv elizaservicevenv
 ```
 
@@ -109,14 +109,14 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 5. Run migrations:
 ```bash
 python manage.py migrate
-# On Windows
+# OR
 python3 manage.py migrate
 ```
 
 6. Start the development server:
 ```bash
 python manage.py runserver
-# On Windows
+# OR
 python3 manage.py runserver
 ```
 
