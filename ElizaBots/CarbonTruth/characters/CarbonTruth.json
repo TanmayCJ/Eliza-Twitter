@@ -3,7 +3,7 @@
   "clients": [
     "twitter"
   ],
-  "modelProvider": "groq",
+  "modelProvider": "openai",
   "settings": {
     "secrets": {},
     "voice": {
