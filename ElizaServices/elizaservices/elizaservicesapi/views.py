@@ -114,30 +114,60 @@ class EnvironmentalNewsView(APIView):
 
 class TweetsView(APIView):
     def get(self, request):
-        sender = request.query_params.get('sender', '').lower()
+        sender = request.query_params.get("sender", "").lower()
+
         if sender not in SENDER_MODEL_MAP:
             return Response(
                 {"error": f"Invalid sender. Valid senders are: {list(SENDER_MODEL_MAP.keys())}"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
+
         model, serializer_class = SENDER_MODEL_MAP[sender]
         tweets = model.objects.all()
         serializer = serializer_class(tweets, many=True)
         return Response(serializer.data)
 
     def post(self, request):
-        sender = request.data.get('sender', '').lower()
+        sender = request.data.get("sender", "").lower()
+        queued_id = request.query_params.get("queued_id", None)  # changed: now from query params
+
         if sender not in SENDER_MODEL_MAP:
             return Response(
                 {"error": f"Invalid sender. Valid senders are: {list(SENDER_MODEL_MAP.keys())}"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
+
         model, serializer_class = SENDER_MODEL_MAP[sender]
         serializer = serializer_class(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # If queued_id is given, validate it BEFORE saving the tweet
+        match = None
+        if queued_id:
+            from .models import QueuedTweet
+            match = QueuedTweet.objects.filter(
+                id=queued_id,
+                bot=sender,
+                content_type__isnull=True,
+                object_id__isnull=True,
+            ).first()
+
+            if not match:
+                return Response(
+                    {"error": f"No unposted QueuedTweet with id={queued_id} for bot '{sender}'."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Save the tweet
+        instance = serializer.save()
+
+        # Link the queued tweet if matched
+        if match:
+            match.mark_as_posted(instance)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class LatestTweetView(APIView):
     def get(self, request):
@@ -202,9 +232,11 @@ class QueuedTweetView(APIView):
 
         now = timezone.now()
 
+        # Updated logic: find only unposted tweets
         queued = QueuedTweet.objects.filter(
             bot=sender,
-            status="pending",
+            content_type__isnull=True,
+            object_id__isnull=True,
             when_to_post__lte=now
         ).order_by("when_to_post").first()
 
