@@ -13,7 +13,7 @@ class NewsService:
         self.countries = countries or ["US", "CA"]
         self.max_retries = max_retries
         self.retry_delay = retry_delay
-        self.url = "https://api.openai.com/v1/responses"
+        self.url = settings.OPENAI_API_BASE_URL_V1
         self.headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}"
@@ -86,12 +86,26 @@ class NewsService:
                 response = requests.post(self.url, headers=self.headers, data=json.dumps(payload))
 
                 if response.status_code != 200:
+                    try:
+                        error_message = response.text
+                    except Exception:
+                        error_message = "<Could not retrieve response text>"
+                    print(f"[NewsService] Attempt {attempt+1}: Received non-200 status code: {response.status_code}. Response message: {error_message}. Retrying...")
                     continue
 
-                parsed_response = response.json()
+                try:
+                    parsed_response = response.json()
+                except Exception as e:
+                    print(f"[NewsService] Attempt {attempt+1}: Failed to parse JSON from response. Error: {e}. Response text: {response.text}")
+                    continue
 
                 # Extract assistant message content
-                content_blocks = parsed_response['output'][1]['content']
+                try:
+                    content_blocks = parsed_response['output'][1]['content']
+                except Exception as e:
+                    print(f"[NewsService] Attempt {attempt+1}: Could not extract content blocks from response JSON. Error: {e}. Full response: {parsed_response}")
+                    continue
+
                 raw_output_text = ""
                 for block in content_blocks:
                     if block['type'] == 'output_text':
@@ -102,7 +116,11 @@ class NewsService:
                 match = re.search(r'```json\s*(.*?)\s*```', raw_output_text, re.DOTALL)
                 clean_json_str = match.group(1) if match else raw_output_text
 
-                news_data = json.loads(clean_json_str)
+                try:
+                    news_data = json.loads(clean_json_str)
+                except Exception as e:
+                    print(f"[NewsService] Attempt {attempt+1}: Failed to parse news JSON. Error: {e}. Cleaned string: {clean_json_str}")
+                    continue
                 
                 # Add emotion and personality analysis for each news item
                 for news_item in news_data.get('news', []):
@@ -121,15 +139,20 @@ class NewsService:
                             news_item['emotions'] = [{"emotion": "neutral", "score": 1.0}]
                             news_item['matched_personality'] = "Neil deGrasse Tyson"
                 
+                if not news_data.get('news'):
+                    print("[NewsService] No news items found in the response. Returning empty news list.")
+
                 return news_data
 
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                print(f"[NewsService] JSONDecodeError: {e}. Returning empty news list.")
                 return {"news": []}
 
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[NewsService] Exception occurred: {e}. Retrying if attempts remain.")
 
             if attempt < self.max_retries:
                 time.sleep(self.retry_delay)
 
+        print("[NewsService] All attempts exhausted. Returning empty news list.")
         return {"news": []}
