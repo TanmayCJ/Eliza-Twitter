@@ -1037,7 +1037,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"sender\": \"default\",\n    \"tweet_id\": \"default_001\",\n    \"date\": \"2025-06-07\",\n    \"time\": \"10:30:00\",\n    \"content\": \"Climate change isn’t a distant threat — it’s here. But so is innovation. Let’s push for bold policy and real action. 🌱 #ClimateAction #NetZero\",\n    \"hashtags\": [\n        \"ClimateAction\",\n        \"NetZero\"\n    ],\n    \"image_urls\": [],\n    \"tweet_link\": null\n}",
+							"raw": "{\n    \"sender\": \"default\",\n    \"tweet_id\": \"default_001\",\n    \"content\": \"Climate change isn’t a distant threat — it’s here. But so is innovation. Let’s push for bold policy and real action. 🌱 #ClimateAction #NetZero\",\n    \"hashtags\": [\n        \"ClimateAction\",\n        \"NetZero\"\n    ],\n    \"image_urls\": [],\n    \"tweet_link\": null\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1075,7 +1075,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"sender\": \"default\",\n    \"tweet_id\": \"default_001\",\n    \"date\": \"2025-06-07\",\n    \"time\": \"10:30:00\",\n    \"content\": \"Climate change isn’t a distant threat — it’s here. But so is innovation. Let’s push for bold policy and real action. 🌱 #ClimateAction #NetZero\",\n    \"hashtags\": [\n        \"ClimateAction\",\n        \"NetZero\"\n    ],\n    \"image_urls\": [],\n    \"tweet_link\": null\n}",
+									"raw": "{\n    \"sender\": \"default\",\n    \"tweet_id\": \"default_001\",\n    \"content\": \"Climate change isn’t a distant threat — it’s here. But so is innovation. Let’s push for bold policy and real action. 🌱 #ClimateAction #NetZero\",\n    \"hashtags\": [\n        \"ClimateAction\",\n        \"NetZero\"\n    ],\n    \"image_urls\": [],\n    \"tweet_link\": null\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -1151,7 +1151,96 @@
 								}
 							],
 							"cookie": [],
-							"body": "{\n    \"id\": 1,\n    \"tweet_id\": \"default_001\",\n    \"date\": \"2025-06-07\",\n    \"time\": \"10:30:00\",\n    \"content\": \"Climate change isn’t a distant threat — it’s here. But so is innovation. Let’s push for bold policy and real action. 🌱 #ClimateAction #NetZero\",\n    \"tweet_link\": null,\n    \"hashtags\": [\n        \"ClimateAction\",\n        \"NetZero\"\n    ],\n    \"image_urls\": [],\n    \"created_at\": \"2025-06-07T06:10:48.357171Z\"\n}"
+							"body": "{\n    \"id\": 1,\n    \"tweet_id\": \"default_001\",\n    \"content\": \"Climate change isn’t a distant threat — it’s here. But so is innovation. Let’s push for bold policy and real action. 🌱 #ClimateAction #NetZero\",\n    \"tweet_link\": null,\n    \"hashtags\": [\n        \"ClimateAction\",\n        \"NetZero\"\n    ],\n    \"image_urls\": [],\n    \"created_at\": \"2025-06-07T06:10:48.357171Z\"\n}"
+						},
+						{
+							"name": "EXAMPLE2",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"sender\": \"default\",\n  \"tweet_id\": \"1234567890\",\n  \"tweet_link\": \"https://twitter.com/yourbot/status/1234567890\",\n  \"content\": \"This is a queued tweet for DefaultBot.\",\n  \"hashtags\": [\"example\", \"default\"],\n  \"image_urls\": [\"https://example.com/image.jpg\"]\n}\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/tweets/?sender=default&queued_id=4",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"tweets",
+										""
+									],
+									"query": [
+										{
+											"key": "sender",
+											"value": "default"
+										},
+										{
+											"key": "queued_id",
+											"value": "4"
+										}
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sun, 15 Jun 2025 11:36:25 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "GET, POST, HEAD, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "267"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 4,\n    \"tweet_id\": \"1234567890\",\n    \"content\": \"This is a queued tweet for DefaultBot.\",\n    \"tweet_link\": \"https://twitter.com/yourbot/status/1234567890\",\n    \"hashtags\": [\n        \"example\",\n        \"default\"\n    ],\n    \"image_urls\": [\n        \"https://example.com/image.jpg\"\n    ],\n    \"created_at\": \"2025-06-15T11:36:24.952564Z\"\n}"
 						}
 					]
 				},
@@ -1358,6 +1447,121 @@
 							],
 							"cookie": [],
 							"body": "[\n    \"carbontruth\",\n    \"carbonrant\",\n    \"default\",\n    \"carbonsustainai\"\n]"
+						}
+					]
+				},
+				{
+					"name": "LatestNTweets",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:8000/api/tweets/latest_n?sender=carbontruth&count=3",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"tweets",
+								"latest_n"
+							],
+							"query": [
+								{
+									"key": "sender",
+									"value": "carbontruth"
+								},
+								{
+									"key": "count",
+									"value": "3"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "EXAMPLE1",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/tweets/latest_n?sender=carbontruth&count=3",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"tweets",
+										"latest_n"
+									],
+									"query": [
+										{
+											"key": "sender",
+											"value": "carbontruth"
+										},
+										{
+											"key": "count",
+											"value": "3"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sun, 15 Jun 2025 10:50:10 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "GET, HEAD, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1356"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": 43,\n        \"tweet_id\": \"1934196976763228501\",\n        \"content\": \"Hello, ocean lovers! Ocean reforestation is key to restoring marine ecosystems, capturing carbon, and boosting biodiversity. Protecting our oceans is vital for a sustainable future. #OceanConservation https://tinyurl.com/3f8cb5xk\",\n        \"tweet_link\": \"https://twitter.com/CarbonTruths/status/1934196976763228501\",\n        \"hashtags\": [\n            \"OceanConservation\"\n        ],\n        \"image_urls\": [],\n        \"created_at\": \"2025-06-15T10:31:12.112290Z\"\n    },\n    {\n        \"id\": 42,\n        \"tweet_id\": \"1934195998970282244\",\n        \"content\": \"Bamboo and hemp are amazing eco-friendly materials that offer sustainable alternatives to traditional resources, helping us reduce environmental impact and move towards a #CircularEconomy. #SustainableLiving\",\n        \"tweet_link\": \"https://twitter.com/CarbonTruths/status/1934195998970282244\",\n        \"hashtags\": [\n            \"CircularEconomy\",\n            \"SustainableLiving\"\n        ],\n        \"image_urls\": [],\n        \"created_at\": \"2025-06-15T10:27:19.020985Z\"\n    },\n    {\n        \"id\": 41,\n        \"tweet_id\": \"1934194290785489404\",\n        \"content\": \"Planting trees is a key step in fighting climate change, restoring ecosystems, and boosting biodiversity. Let's make our planet healthier, one tree at a time! 🌳 https://tinyurl.com/2udrzdyr #ClimateAction #Biodiversity\",\n        \"tweet_link\": \"https://twitter.com/CarbonTruths/status/1934194290785489404\",\n        \"hashtags\": [\n            \"ClimateAction\",\n            \"Biodiversity\"\n        ],\n        \"image_urls\": [],\n        \"created_at\": \"2025-06-15T10:20:31.470173Z\"\n    }\n]"
 						}
 					]
 				}
