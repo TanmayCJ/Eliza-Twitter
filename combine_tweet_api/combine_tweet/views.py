@@ -169,6 +169,7 @@ class TweetViewHandler:
                 'status': 'error'
             }
 
+
 # Create a single instance of the handler
 tweet_handler = TweetViewHandler()
 
