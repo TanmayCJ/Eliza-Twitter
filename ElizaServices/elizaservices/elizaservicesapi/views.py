@@ -154,6 +154,29 @@ class LatestTweetView(APIView):
         serializer = serializer_class(latest_tweet)
         return Response(serializer.data)
 
+class LatestNTweetsView(APIView):
+    def get(self, request):
+        sender = request.query_params.get('sender', '').lower()
+        count = request.query_params.get('count', 5)
+
+        if sender not in SENDER_MODEL_MAP:
+            return Response(
+                {"error": f"Invalid sender. Valid senders are: {list(SENDER_MODEL_MAP.keys())}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            count = int(count)
+            if count <= 0:
+                raise ValueError
+        except ValueError:
+            return Response({"error": "Count must be a positive integer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        model, serializer_class = SENDER_MODEL_MAP[sender]
+        latest_tweets = model.objects.order_by('-created_at')[:count]
+        serializer = serializer_class(latest_tweets, many=True)
+        return Response(serializer.data)
+
 class ValidSendersView(APIView):
     def get(self, request):
         return Response(list(SENDER_MODEL_MAP.keys()), status=status.HTTP_200_OK)
