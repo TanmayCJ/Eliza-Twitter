@@ -1,4 +1,5 @@
 import type { Tweet } from "agent-twitter-client";
+
 import {
     composeContext,
     generateText,
@@ -23,6 +24,7 @@ import { twitterMessageHandlerTemplate } from "./interactions.ts";
 import { DEFAULT_MAX_TWEET_LENGTH } from "./environment.ts";
 import { formatHandle, getRecommendedTags, isTaggingEnabled } from "./mentions.ts";
 import { getRandomPersonality, type PersonalityConfig } from "./personality.ts";
+import { checkTweetPopularity } from "./popularity.ts";
    
 import {
     Client,
@@ -129,8 +131,9 @@ export class TwitterPostClient {
     private approvalCheckInterval: number;
     private raiinmakerService: any | null = null;
     private approvalProvider: string;
-
-    constructor(client: ClientBase, runtime: IAgentRuntime) {
+    // Popularity check properties
+    private popularityCheckEnabled = false;
+    private minPopularityScore = 30;    constructor(client: ClientBase, runtime: IAgentRuntime) {
         elizaLogger.debug("🔍 TwitterPostClient constructor start");
         this.client = client;
         this.runtime = runtime;
@@ -142,6 +145,14 @@ export class TwitterPostClient {
         
         this.approvalProvider = rawApprovalProvider || "RAIINMAKER";
         elizaLogger.debug(`🔍 Final approval provider set to: "${this.approvalProvider}"`);
+          // Initialize popularity check settings
+        const popularityCheckEnabled = this.runtime.getSetting("TWITTER_POPULARITY_CHECK_ENABLED")?.toLowerCase() === "true";
+        const minPopularityScore = Number(this.runtime.getSetting("TWITTER_POPULARITY_MIN_SCORE") || "30");
+        const popularityApiUrl = this.runtime.getSetting("TWITTER_POPULARITY_API_URL");
+        const verboseOutput = this.runtime.getSetting("TWITTER_POPULARITY_VERBOSE_OUTPUT")?.toLowerCase() === "true";
+        
+        this.popularityCheckEnabled = popularityCheckEnabled;
+        this.minPopularityScore = minPopularityScore;
         
         // Log configuration on initialization
         elizaLogger.log("Twitter Client Configuration:");
@@ -152,8 +163,12 @@ export class TwitterPostClient {
         elizaLogger.log(`- Action Processing: ${this.client.twitterConfig.ENABLE_ACTION_PROCESSING ? "enabled" : "disabled"}`);
         elizaLogger.log(`- Action Interval: ${this.client.twitterConfig.ACTION_INTERVAL} minutes`);
         elizaLogger.log(`- Post Immediately: ${this.client.twitterConfig.POST_IMMEDIATELY ? "enabled" : "disabled"}`);
-        elizaLogger.log(`- Search Enabled: ${this.client.twitterConfig.TWITTER_SEARCH_ENABLE ? "enabled" : "disabled"}`);
-        elizaLogger.log(`- Approval Provider: ${this.approvalProvider}`);
+        elizaLogger.log(`- Search Enabled: ${this.client.twitterConfig.TWITTER_SEARCH_ENABLE ? "enabled" : "disabled"}`);        elizaLogger.log(`- Approval Provider: ${this.approvalProvider}`);
+        elizaLogger.log(`- Popularity Check: ${popularityCheckEnabled ? "enabled" : "disabled"}${popularityCheckEnabled ? ` (min score: ${minPopularityScore})` : ''}`);
+        if (popularityCheckEnabled) {
+            elizaLogger.log(`  - API URL: ${popularityApiUrl || "http://127.0.0.1:8000/api/popularity/ (default)"}`);
+            elizaLogger.log(`  - Verbose Output: ${verboseOutput ? "enabled" : "disabled"}`);
+        }
     
         const targetUsers = this.client.twitterConfig.TWITTER_TARGET_USERS;
         if (targetUsers) {
@@ -1116,9 +1131,7 @@ export class TwitterPostClient {
             // Use the raw text
             if (!tweetTextForPosting) {
                 tweetTextForPosting = rawTweetContent;
-            }
-
-            // Truncate the content to the maximum tweet length specified in the environment settings, ensuring the truncation respects sentence boundaries.
+            }            // Truncate the content to the maximum tweet length specified in the environment settings, ensuring the truncation respects sentence boundaries.
             if (maxTweetLength) {
                 tweetTextForPosting = truncateToCompleteSentence(
                     tweetTextForPosting,
@@ -1135,6 +1148,43 @@ export class TwitterPostClient {
             tweetTextForPosting = removeQuotes(
                 fixNewLines(tweetTextForPosting)
             );
+              // Check tweet popularity before posting if enabled
+            if (this.popularityCheckEnabled) {
+                console.log("\n\x1b[36m[TWEET POPULARITY CHECK]\x1b[0m Starting popularity analysis...");
+                const popularityCheck = await checkTweetPopularity(tweetTextForPosting, this.runtime);
+                
+                if (popularityCheck) {
+                    const formattedScore = popularityCheck.score.toFixed(2);
+                    
+                    // Store popularity score with tweet for analytics
+                    const popularityData = {
+                        score: popularityCheck.score,
+                        explanation: popularityCheck.explanation,
+                        timestamp: Date.now(),
+                        tweet: tweetTextForPosting
+                    };
+                    
+                    await this.runtime.cacheManager.set(
+                        `twitter/${this.twitterUsername}/lastTweetPopularity`, 
+                        popularityData
+                    );
+                    
+                    // Skip low-scoring tweets if below minimum threshold
+                    if (popularityCheck.score < this.minPopularityScore) {
+                        console.log(`\n\x1b[31m[DECISION] ❌ Tweet rejected! Score (${formattedScore}) below minimum threshold (${this.minPopularityScore})\x1b[0m`);
+                        console.log(`\x1b[33m[ACTION] Tweet will not be posted. System will generate a new tweet later.\x1b[0m\n`);
+                        elizaLogger.warn(`Tweet popularity score too low (${formattedScore}), minimum required: ${this.minPopularityScore}`);
+                        elizaLogger.warn(`Tweet will not be posted due to low popularity score. Regenerate a new tweet.`);
+                        return;
+                    }
+                    
+                    console.log(`\n\x1b[32m[DECISION] ✅ Tweet accepted! Score (${formattedScore}) meets minimum threshold (${this.minPopularityScore})\x1b[0m`);
+                    console.log(`\x1b[32m[ACTION] Proceeding with tweet posting process\x1b[0m\n`);
+                } else {
+                    console.log(`\n\x1b[33m[WARNING] Could not check tweet popularity, continuing with posting process\x1b[0m\n`);
+                    elizaLogger.warn(`Could not check tweet popularity, continuing with posting process`);
+                }
+            }
             
             // Get recommended personality tags based on content
             const recommendedTags = getRecommendedTags(tweetTextForPosting);

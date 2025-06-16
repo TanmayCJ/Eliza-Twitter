@@ -171,7 +171,7 @@ export class ClientBase extends EventEmitter {
             isReply: raw.isReply,
             isRetweet: raw.legacy?.retweeted === true,
             isSelfThread: raw.isSelfThread,
-            language: raw.legacy?.lang,
+          
             likes: raw.legacy?.favorite_count ?? 0,
             name:
                 raw.name ??
@@ -198,7 +198,7 @@ export class ClientBase extends EventEmitter {
             quotedStatus,
             quotedStatusId:
                 raw.quotedStatusId ?? raw.legacy?.quoted_status_id_str ?? undefined,
-            quotes: raw.legacy?.quote_count ?? 0,
+           
             replies: raw.legacy?.reply_count ?? 0,
             retweets: raw.legacy?.retweet_count ?? 0,
             retweetedStatus,
@@ -372,7 +372,7 @@ export class ClientBase extends EventEmitter {
             ? await this.twitterClient.fetchFollowingTimeline(count, [])
             : await this.twitterClient.fetchHomeTimeline(count, []);
 
-        elizaLogger.debug(homeTimeline, { depth: Number.POSITIVE_INFINITY });
+        elizaLogger.debug("Home timeline:", homeTimeline, { depth: Number.POSITIVE_INFINITY });
         const processedTimeline = homeTimeline
             .filter((t) => t.__typename !== "TweetWithVisibilityResults") // what's this about?
             .map((tweet) => this.parseTweet(tweet));
