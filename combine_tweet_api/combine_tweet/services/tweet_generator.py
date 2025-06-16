@@ -22,8 +22,8 @@ class TweetGenerator:
         self.api_client = ExternalAPIClient()
 
         # Blend ratios
-        self.fact_weight = 0.7  # default 70% facts
-        self.rant_weight = 0.3  # default 30% rant
+        self.fact_weight = 0.7  
+        self.rant_weight = 0.3  
 
     def set_blend_ratio(self, fact_weight, rant_weight):
         if not abs((fact_weight + rant_weight) - 1.0) < 0.01:

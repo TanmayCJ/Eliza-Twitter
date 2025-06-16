@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  carbontruth:
+    build: ./ElizaBots/CarbonTruth
+    container_name: carbontruth
+    ports:
+      - "3002:3000"
+    restart: always
+    command: pnpm start --characters="characters/CarbonTruth.json"
+
+  elizaservices:
+    build: ./ElizaServices
+    container_name: elizaservices
+    ports:
+      - "8000:8000"
+    restart: always
+    command: python elizaservices/manage.py runserver

@@ -1,0 +1,1571 @@
+{
+	"info": {
+		"_postman_id": "c1b93ecd-d2eb-47c5-804e-f902c3662aff",
+		"name": "ElizaServices",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "33511505",
+		"_collection_link": "https://galactic-capsule-141577.postman.co/workspace/ElizaBots~b0f94709-9925-47f4-80f5-4222e1b28863/collection/33511505-c1b93ecd-d2eb-47c5-804e-f902c3662aff?action=share&source=collection_link&creator=33511505"
+	},
+	"item": [
+		{
+			"name": "Popularity",
+			"item": [
+				{
+					"name": "TweetPopularity",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"text\": \"5 climate wins this week 🌍: 1) EV sales hit new record. 2) Canada bans single-use plastics. 3) Youth climate bill passed in Brazil. Momentum is real. #ClimateAction\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/api/popularity/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"popularity",
+								""
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "EXAMPLE1",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"text\": \"5 climate wins this week 🌍: 1) EV sales hit new record. 2) Canada bans single-use plastics. 3) Youth climate bill passed in Brazil. Momentum is real. #ClimateAction\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/popularity/",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"popularity",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sat, 07 Jun 2025 06:03:11 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "POST, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "344"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"predicted_score\": 42.43779373168945,\n    \"explanation\": \"Predicted popularity score using neural net and SentenceTransformer embeddings, standardized to [0, 100].\",\n    \"cleaned_text\": \"5 climate wins this week 🌍: 1) EV sales hit new record. 2) Canada bans single-use plastics. 3) Youth climate bill passed in Brazil. Momentum is real. #ClimateAction\"\n}"
+						}
+					]
+				},
+				{
+					"name": "KBestHashtags",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"text\": \"Solar energy is becoming more accessible than ever before. It's time we make the switch.\",\n    \"hashtags\": [\n        \"#SolarEnergy\",\n        \"#GoGreen\",\n        \"#ClimateCrisis\",\n        \"#CleanEnergy\"\n    ],\n    \"top_n\": 2\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/api/compare_hashtags/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"compare_hashtags",
+								""
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "EXAMPLE1",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"text\": \"Solar energy is becoming more accessible than ever before. It's time we make the switch.\",\n    \"hashtags\": [\n        \"#SolarEnergy\",\n        \"#GoGreen\",\n        \"#ClimateCrisis\",\n        \"#CleanEnergy\"\n    ],\n    \"top_n\": 2\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/compare_hashtags/",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"compare_hashtags",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sat, 07 Jun 2025 06:03:31 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "POST, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "143"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"top_hashtags\": [\n        {\n            \"hashtag\": \"#GoGreen\",\n            \"predicted_score\": 20.722206115722656\n        },\n        {\n            \"hashtag\": \"#ClimateCrisis\",\n            \"predicted_score\": 20.51825523376465\n        }\n    ]\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Safety",
+			"item": [
+				{
+					"name": "TweetSafety",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"text\": \"I think we have different views on environmental issues. Let's try to understand each other better.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/api/safety/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"safety",
+								""
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "EXAMPLE1",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"text\": \"You're such a failure. Nobody wants to listen to your eco nonsense!\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/safety/",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"safety",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sat, 07 Jun 2025 06:04:02 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "POST, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "413"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"text_safety_score\": {\n        \"is_appropriate\": false,\n        \"scores\": {\n            \"toxic\": 0.9483510851860046,\n            \"severe_toxic\": 0.004334163852035999,\n            \"obscene\": 0.12275130301713943,\n            \"threat\": 0.000961675017606467,\n            \"insult\": 0.760823667049408,\n            \"identity_hate\": 0.008608716540038586\n        },\n        \"explanation\": \"Safety evaluation via unitary/toxic-bert.\",\n        \"cleaned_text\": \"You're such a failure. Nobody wants to listen to your eco nonsense!\"\n    },\n    \"image_safety_score\": null\n}"
+						},
+						{
+							"name": "EXAMPLE2",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"text\": \"I think we have different views on environmental issues. Let's try to understand each other better.\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/safety/",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"safety",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sat, 07 Jun 2025 06:04:55 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "POST, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "461"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"text_safety_score\": {\n        \"is_appropriate\": true,\n        \"scores\": {\n            \"toxic\": 0.0005403357208706439,\n            \"severe_toxic\": 0.00014019000809639692,\n            \"obscene\": 0.00019511299615260214,\n            \"threat\": 0.00014626103802584112,\n            \"insult\": 0.00017947166634257883,\n            \"identity_hate\": 0.00015153514686971903\n        },\n        \"explanation\": \"Safety evaluation via unitary/toxic-bert.\",\n        \"cleaned_text\": \"I think we have different views on environmental issues. Let's try to understand each other better.\"\n    },\n    \"image_safety_score\": null\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "ImageGen",
+			"item": [
+				{
+					"name": "GenerateImage",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"keyword\": \"carbon footprint\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/api/imagegen/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"imagegen",
+								""
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "EXAMPLE1",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"keyword\": \"carbon footprint\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/imagegen/",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"imagegen",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sat, 07 Jun 2025 06:05:34 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "POST, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "93"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"image_url\": \"https://images.pexels.com/photos/39553/industry-sunrise-clouds-fog-39553.jpeg\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "News/Articles",
+			"item": [
+				{
+					"name": "GetEnviornmentalNewsRecent",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:8000/api/news/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"news",
+								""
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "EXAMPLE1",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/news/",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"news",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sat, 07 Jun 2025 06:05:59 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "GET, HEAD, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "3962"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"news\": [\n        {\n            \"title\": \"2025 Canadian Wildfires Lead to Evacuations and Air Quality Warnings\",\n            \"date\": \"2025-06-05\",\n            \"location\": \"Canada\",\n            \"summary\": \"As of June 5, 2025, approximately 1,753 wildfires have burned over 2.61 million hectares across multiple provinces, including Manitoba, Ontario, and Saskatchewan. The fires have resulted in two civilian fatalities, the evacuation of over 32,000 residents, and significant air quality warnings extending into the Eastern United States.\",\n            \"url\": \"https://en.wikipedia.org/wiki/2025_Canadian_wildfires\",\n            \"event_type\": \"disaster\",\n            \"emotions\": [\n                {\n                    \"emotion\": \"neutral\",\n                    \"score\": 0.779\n                },\n                {\n                    \"emotion\": \"negative\",\n                    \"score\": 0.2202\n                },\n                {\n                    \"emotion\": \"positive\",\n                    \"score\": 0.0007\n                }\n            ],\n            \"matched_personality\": \"Greta Thunberg\"\n        },\n        {\n            \"title\": \"Montana Supreme Court Upholds Youth-Led Climate Lawsuit Victory\",\n            \"date\": \"2024-12-18\",\n            \"location\": \"Montana, USA\",\n            \"summary\": \"On December 18, 2024, the Montana Supreme Court upheld a landmark ruling in the case of Held v. Montana, affirming that the state's support of fossil fuel projects violated the constitutional right of residents to a clean and healthful environment. This decision mandates that Montana must consider environmental and health impacts in all future fossil fuel-related projects.\",\n            \"url\": \"https://en.wikipedia.org/wiki/Held_v._Montana\",\n            \"event_type\": \"policy\",\n            \"emotions\": [\n                {\n                    \"emotion\": \"neutral\",\n                    \"score\": 0.9876\n                },\n                {\n                    \"emotion\": \"positive\",\n                    \"score\": 0.0086\n                },\n                {\n                    \"emotion\": \"negative\",\n                    \"score\": 0.0037\n                }\n            ],\n            \"matched_personality\": \"Neil deGrasse Tyson\"\n        },\n        {\n            \"title\": \"Alberta Lifts Coal Exploration Moratorium Amid Environmental Concerns\",\n            \"date\": \"2025-01-15\",\n            \"location\": \"Alberta, Canada\",\n            \"summary\": \"In January 2025, Alberta's Energy and Minerals Minister Brian Jean lifted a moratorium on coal exploration and development, opening approximately 190,000 hectares of previously restricted land to potential coal projects. The decision, made without public consultation, has sparked significant opposition from environmental groups and Indigenous communities due to concerns over water contamination and habitat destruction.\",\n            \"url\": \"https://en.wikipedia.org/wiki/Alberta_coal_policy_controversy\",\n            \"event_type\": \"policy\",\n            \"emotions\": [\n                {\n                    \"emotion\": \"neutral\",\n                    \"score\": 0.874\n                },\n                {\n                    \"emotion\": \"positive\",\n                    \"score\": 0.0616\n                },\n                {\n                    \"emotion\": \"negative\",\n                    \"score\": 0.0458\n                }\n            ],\n            \"matched_personality\": \"Neil deGrasse Tyson\"\n        },\n        {\n            \"title\": \"US Scientists Rally Against Research Funding Cuts and Policy Changes\",\n            \"date\": \"2025-03-07\",\n            \"location\": \"United States\",\n            \"summary\": \"On March 7, 2025, thousands of scientists and supporters participated in 'Stand Up for Science' rallies across the United States, including a central event at the Lincoln Memorial in Washington, D.C. The demonstrations were organized in response to policy changes under the Trump administration that threatened scientific research funding and employment, advocating for the cessation of grant freezes and the reinstatement of diversity initiatives.\",\n            \"url\": \"https://en.wikipedia.org/wiki/Stand_Up_for_Science_2025\",\n            \"event_type\": \"activism\",\n            \"emotions\": [\n                {\n                    \"emotion\": \"neutral\",\n                    \"score\": 0.9905\n                },\n                {\n                    \"emotion\": \"positive\",\n                    \"score\": 0.0082\n                },\n                {\n                    \"emotion\": \"negative\",\n                    \"score\": 0.0013\n                }\n            ],\n            \"matched_personality\": \"Neil deGrasse Tyson\"\n        },\n        {\n            \"title\": \"US Government Removes Key Environmental Data from Public Access\",\n            \"date\": \"2025-02-05\",\n            \"location\": \"United States\",\n            \"summary\": \"In early February 2025, the US government removed several key environmental and scientific resources from public access, including the EPA's environmental justice mapping tool, EJScreen, and numerous research papers from the Department of Energy. These actions have raised concerns about transparency and the availability of critical environmental data for public and scientific use.\",\n            \"url\": \"https://en.wikipedia.org/wiki/2025_United_States_government_online_resource_removals\",\n            \"event_type\": \"policy\",\n            \"emotions\": [\n                {\n                    \"emotion\": \"neutral\",\n                    \"score\": 0.9634\n                },\n                {\n                    \"emotion\": \"negative\",\n                    \"score\": 0.0208\n                },\n                {\n                    \"emotion\": \"positive\",\n                    \"score\": 0.0131\n                }\n            ],\n            \"matched_personality\": \"Neil deGrasse Tyson\"\n        }\n    ]\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "TweetManagement",
+			"item": [
+				{
+					"name": "QueuedTweets",
+					"item": [
+						{
+							"name": "GetPendingRequest",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"sender\": \"carbontruth\"\n}\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/queuedtweets/",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"queuedtweets",
+										""
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "Example1",
+									"originalRequest": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"sender\": \"carbontruth\"\n}\n",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://127.0.0.1:8000/api/queuedtweets/",
+											"protocol": "http",
+											"host": [
+												"127",
+												"0",
+												"0",
+												"1"
+											],
+											"port": "8000",
+											"path": [
+												"api",
+												"queuedtweets",
+												""
+											]
+										}
+									},
+									"status": "Not Found",
+									"code": 404,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Date",
+											"value": "Wed, 11 Jun 2025 10:13:05 GMT"
+										},
+										{
+											"key": "Server",
+											"value": "WSGIServer/0.2 CPython/3.10.13"
+										},
+										{
+											"key": "Content-Type",
+											"value": "application/json"
+										},
+										{
+											"key": "Vary",
+											"value": "Accept, Cookie"
+										},
+										{
+											"key": "Allow",
+											"value": "POST, OPTIONS"
+										},
+										{
+											"key": "X-Frame-Options",
+											"value": "DENY"
+										},
+										{
+											"key": "Content-Length",
+											"value": "45"
+										},
+										{
+											"key": "X-Content-Type-Options",
+											"value": "nosniff"
+										},
+										{
+											"key": "Referrer-Policy",
+											"value": "same-origin"
+										},
+										{
+											"key": "Cross-Origin-Opener-Policy",
+											"value": "same-origin"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"message\": \"No queued tweets ready to post.\"\n}"
+								},
+								{
+									"name": "Example2",
+									"originalRequest": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"sender\": \"carbontruth\"\n}\n",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "http://127.0.0.1:8000/api/queuedtweets/",
+											"protocol": "http",
+											"host": [
+												"127",
+												"0",
+												"0",
+												"1"
+											],
+											"port": "8000",
+											"path": [
+												"api",
+												"queuedtweets",
+												""
+											]
+										}
+									},
+									"status": "Created",
+									"code": 201,
+									"_postman_previewlanguage": "json",
+									"header": [
+										{
+											"key": "Date",
+											"value": "Wed, 11 Jun 2025 10:22:15 GMT"
+										},
+										{
+											"key": "Server",
+											"value": "WSGIServer/0.2 CPython/3.10.13"
+										},
+										{
+											"key": "Content-Type",
+											"value": "application/json"
+										},
+										{
+											"key": "Vary",
+											"value": "Accept, Cookie"
+										},
+										{
+											"key": "Allow",
+											"value": "POST, OPTIONS"
+										},
+										{
+											"key": "X-Frame-Options",
+											"value": "DENY"
+										},
+										{
+											"key": "Content-Length",
+											"value": "347"
+										},
+										{
+											"key": "X-Content-Type-Options",
+											"value": "nosniff"
+										},
+										{
+											"key": "Referrer-Policy",
+											"value": "same-origin"
+										},
+										{
+											"key": "Cross-Origin-Opener-Policy",
+											"value": "same-origin"
+										}
+									],
+									"cookie": [],
+									"body": "{\n    \"message\": \"Tweet successfully posted.\",\n    \"posted_data\": {\n        \"id\": 7,\n        \"tweet_id\": \"manual_1749637334.647476\",\n        \"date\": \"2025-06-11\",\n        \"time\": \"10:12:48.766916\",\n        \"content\": \"Microplastics found in human blood. Still think plastic is harmless?\",\n        \"tweet_link\": null,\n        \"hashtags\": [\n            \"#BanPlastic\",\n            \"#EcoAwareness\"\n        ],\n        \"image_urls\": [],\n        \"created_at\": \"2025-06-11T10:22:14.928835Z\"\n    }\n}"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "ListAllTweets",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:8000/api/tweets/?sender=default",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"tweets",
+								""
+							],
+							"query": [
+								{
+									"key": "sender",
+									"value": "default"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "EXAMPLE1",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/tweets/",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"tweets",
+										""
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sat, 07 Jun 2025 06:06:13 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "GET, POST, HEAD, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "106"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": \"Invalid sender. Valid senders are: ['carbontruth', 'carbonrant', 'default', 'carbonsustainai']\"\n}"
+						},
+						{
+							"name": "EXAMPLE2",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/tweets/?sender=default",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"tweets",
+										""
+									],
+									"query": [
+										{
+											"key": "sender",
+											"value": "default"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sat, 07 Jun 2025 06:11:44 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "GET, POST, HEAD, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "355"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": 1,\n        \"tweet_id\": \"default_001\",\n        \"date\": \"2025-06-07\",\n        \"time\": \"10:30:00\",\n        \"content\": \"Climate change isn’t a distant threat — it’s here. But so is innovation. Let’s push for bold policy and real action. 🌱 #ClimateAction #NetZero\",\n        \"tweet_link\": null,\n        \"hashtags\": [\n            \"ClimateAction\",\n            \"NetZero\"\n        ],\n        \"image_urls\": [],\n        \"created_at\": \"2025-06-07T06:10:48.357171Z\"\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "CreateAllTweets",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sender\": \"default\",\n    \"tweet_id\": \"default_001\",\n    \"content\": \"Climate change isn’t a distant threat — it’s here. But so is innovation. Let’s push for bold policy and real action. 🌱 #ClimateAction #NetZero\",\n    \"hashtags\": [\n        \"ClimateAction\",\n        \"NetZero\"\n    ],\n    \"image_urls\": [],\n    \"tweet_link\": null\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://127.0.0.1:8000/api/tweets/?sender=default",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"tweets",
+								""
+							],
+							"query": [
+								{
+									"key": "sender",
+									"value": "default"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "EXAMPLE1",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"sender\": \"default\",\n    \"tweet_id\": \"default_001\",\n    \"content\": \"Climate change isn’t a distant threat — it’s here. But so is innovation. Let’s push for bold policy and real action. 🌱 #ClimateAction #NetZero\",\n    \"hashtags\": [\n        \"ClimateAction\",\n        \"NetZero\"\n    ],\n    \"image_urls\": [],\n    \"tweet_link\": null\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/tweets/?sender=default",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"tweets",
+										""
+									],
+									"query": [
+										{
+											"key": "sender",
+											"value": "default"
+										}
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sat, 07 Jun 2025 06:10:48 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "GET, POST, HEAD, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "353"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 1,\n    \"tweet_id\": \"default_001\",\n    \"content\": \"Climate change isn’t a distant threat — it’s here. But so is innovation. Let’s push for bold policy and real action. 🌱 #ClimateAction #NetZero\",\n    \"tweet_link\": null,\n    \"hashtags\": [\n        \"ClimateAction\",\n        \"NetZero\"\n    ],\n    \"image_urls\": [],\n    \"created_at\": \"2025-06-07T06:10:48.357171Z\"\n}"
+						},
+						{
+							"name": "EXAMPLE2",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"sender\": \"default\",\n  \"tweet_id\": \"1234567890\",\n  \"tweet_link\": \"https://twitter.com/yourbot/status/1234567890\",\n  \"content\": \"This is a queued tweet for DefaultBot.\",\n  \"hashtags\": [\"example\", \"default\"],\n  \"image_urls\": [\"https://example.com/image.jpg\"]\n}\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/tweets/?sender=default&queued_id=4",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"tweets",
+										""
+									],
+									"query": [
+										{
+											"key": "sender",
+											"value": "default"
+										},
+										{
+											"key": "queued_id",
+											"value": "4"
+										}
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sun, 15 Jun 2025 11:36:25 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "GET, POST, HEAD, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "267"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 4,\n    \"tweet_id\": \"1234567890\",\n    \"content\": \"This is a queued tweet for DefaultBot.\",\n    \"tweet_link\": \"https://twitter.com/yourbot/status/1234567890\",\n    \"hashtags\": [\n        \"example\",\n        \"default\"\n    ],\n    \"image_urls\": [\n        \"https://example.com/image.jpg\"\n    ],\n    \"created_at\": \"2025-06-15T11:36:24.952564Z\"\n}"
+						}
+					]
+				},
+				{
+					"name": "LatestTweets",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:8000/api/tweets/latest/?sender=default",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"tweets",
+								"latest",
+								""
+							],
+							"query": [
+								{
+									"key": "sender",
+									"value": "default"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "EXAMPLE1",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/tweets/latest/?sender=default",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"tweets",
+										"latest",
+										""
+									],
+									"query": [
+										{
+											"key": "sender",
+											"value": "default"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sat, 07 Jun 2025 06:12:39 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "GET, HEAD, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "353"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 1,\n    \"tweet_id\": \"default_001\",\n    \"date\": \"2025-06-07\",\n    \"time\": \"10:30:00\",\n    \"content\": \"Climate change isn’t a distant threat — it’s here. But so is innovation. Let’s push for bold policy and real action. 🌱 #ClimateAction #NetZero\",\n    \"tweet_link\": null,\n    \"hashtags\": [\n        \"ClimateAction\",\n        \"NetZero\"\n    ],\n    \"image_urls\": [],\n    \"created_at\": \"2025-06-07T06:10:48.357171Z\"\n}"
+						}
+					]
+				},
+				{
+					"name": "ListAllTwitterBotsInDB",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:8000/api/tweets/senders/",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"tweets",
+								"senders",
+								""
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "EXAMPLE1",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/tweets/senders/",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"tweets",
+										"senders",
+										""
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sat, 07 Jun 2025 06:07:21 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "GET, HEAD, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "56"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    \"carbontruth\",\n    \"carbonrant\",\n    \"default\",\n    \"carbonsustainai\"\n]"
+						}
+					]
+				},
+				{
+					"name": "LatestNTweets",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:8000/api/tweets/latest_n?sender=carbontruth&count=3",
+							"protocol": "http",
+							"host": [
+								"127",
+								"0",
+								"0",
+								"1"
+							],
+							"port": "8000",
+							"path": [
+								"api",
+								"tweets",
+								"latest_n"
+							],
+							"query": [
+								{
+									"key": "sender",
+									"value": "carbontruth"
+								},
+								{
+									"key": "count",
+									"value": "3"
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "EXAMPLE1",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://127.0.0.1:8000/api/tweets/latest_n?sender=carbontruth&count=3",
+									"protocol": "http",
+									"host": [
+										"127",
+										"0",
+										"0",
+										"1"
+									],
+									"port": "8000",
+									"path": [
+										"api",
+										"tweets",
+										"latest_n"
+									],
+									"query": [
+										{
+											"key": "sender",
+											"value": "carbontruth"
+										},
+										{
+											"key": "count",
+											"value": "3"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Sun, 15 Jun 2025 10:50:10 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "WSGIServer/0.2 CPython/3.10.13"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Vary",
+									"value": "Accept, Cookie"
+								},
+								{
+									"key": "Allow",
+									"value": "GET, HEAD, OPTIONS"
+								},
+								{
+									"key": "X-Frame-Options",
+									"value": "DENY"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1356"
+								},
+								{
+									"key": "X-Content-Type-Options",
+									"value": "nosniff"
+								},
+								{
+									"key": "Referrer-Policy",
+									"value": "same-origin"
+								},
+								{
+									"key": "Cross-Origin-Opener-Policy",
+									"value": "same-origin"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": 43,\n        \"tweet_id\": \"1934196976763228501\",\n        \"content\": \"Hello, ocean lovers! Ocean reforestation is key to restoring marine ecosystems, capturing carbon, and boosting biodiversity. Protecting our oceans is vital for a sustainable future. #OceanConservation https://tinyurl.com/3f8cb5xk\",\n        \"tweet_link\": \"https://twitter.com/CarbonTruths/status/1934196976763228501\",\n        \"hashtags\": [\n            \"OceanConservation\"\n        ],\n        \"image_urls\": [],\n        \"created_at\": \"2025-06-15T10:31:12.112290Z\"\n    },\n    {\n        \"id\": 42,\n        \"tweet_id\": \"1934195998970282244\",\n        \"content\": \"Bamboo and hemp are amazing eco-friendly materials that offer sustainable alternatives to traditional resources, helping us reduce environmental impact and move towards a #CircularEconomy. #SustainableLiving\",\n        \"tweet_link\": \"https://twitter.com/CarbonTruths/status/1934195998970282244\",\n        \"hashtags\": [\n            \"CircularEconomy\",\n            \"SustainableLiving\"\n        ],\n        \"image_urls\": [],\n        \"created_at\": \"2025-06-15T10:27:19.020985Z\"\n    },\n    {\n        \"id\": 41,\n        \"tweet_id\": \"1934194290785489404\",\n        \"content\": \"Planting trees is a key step in fighting climate change, restoring ecosystems, and boosting biodiversity. Let's make our planet healthier, one tree at a time! 🌳 https://tinyurl.com/2udrzdyr #ClimateAction #Biodiversity\",\n        \"tweet_link\": \"https://twitter.com/CarbonTruths/status/1934194290785489404\",\n        \"hashtags\": [\n            \"ClimateAction\",\n            \"Biodiversity\"\n        ],\n        \"image_urls\": [],\n        \"created_at\": \"2025-06-15T10:20:31.470173Z\"\n    }\n]"
+						}
+					]
+				}
+			]
+		}
+	]
+}

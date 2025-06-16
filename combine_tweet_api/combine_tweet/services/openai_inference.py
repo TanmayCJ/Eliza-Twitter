@@ -3,7 +3,7 @@ import json
 import logging
 from openai import OpenAI
 from dotenv import load_dotenv
-import random # Import the random module
+import random
 load_dotenv()
 
 logging.basicConfig(level=logging.ERROR)

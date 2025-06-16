@@ -69,15 +69,21 @@
 ### ⏳ Queued Tweet Management
 | Endpoint                                        | Method | Description                                      |
 |-------------------------------------------------|--------|--------------------------------------------------|
-| `/api/queued-tweets/`                          | GET/POST | List or create queued tweets (filters optional)  |
-| `/api/queued-tweets/<pk>/`                     | GET/PUT/DELETE | Get, update, or delete a specific queued tweet |
+| `/api/queuedtweets/`                          | POST | List pending tweets |
+
 
 ---
 
 ## ⚙️ Setup and Installation
+```bash
+Python version: 3.10.13
+Pip version: 23.0.1
+```
 1. Create a virtual environment:Add commentMore actions
 ```bash
 python -m venv elizaservicevenv
+# OR
+python3 -m venv elizaservicevenv
 ```
 
 2. Activate the virtual environment:
@@ -103,11 +109,15 @@ ALLOWED_HOSTS=localhost,127.0.0.1
 5. Run migrations:
 ```bash
 python manage.py migrate
+# OR
+python3 manage.py migrate
 ```
 
 6. Start the development server:
 ```bash
 python manage.py runserver
+# OR
+python3 manage.py runserver
 ```
 
 ## Dependencies

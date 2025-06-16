@@ -7,5 +7,5 @@ urlpatterns = [
     path('generate-combined/', views.generate_combined, name='generate-combined'),
     path('test/', views.test, name='test'),
     path('test-with-sample/', views.test_with_sample, name='test-with-sample'),
-    path('generate_combined_post/', views.generate_combined_post, name='generate_combined_post'),
+    path('generate-combined-post/', views.generate_combined_post, name='generate_combined_post'),
 ]

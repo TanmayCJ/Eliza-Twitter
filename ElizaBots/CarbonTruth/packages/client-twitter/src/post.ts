@@ -235,7 +235,7 @@ Randomly (but not often), choose whether the post is a **statement**, a **questi
 
 //   Your response should be 1, 2, or 3 sentences (choose the length at random).
 //   Never start the tweet with "As a 'something'", etc.
-//   Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than {{maxTweetLength}}. Use \\n\\n (double spaces) between statements if there are multiple statements in your response. Don't place the tweet within quotes.
+//   Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than 400. Use \\n\\n (double spaces) between statements if there are multiple statements in your response. Don't place the tweet within quotes.
 
 //   # If no news is provided:
 //   If there is no news provided, generate a tweet based on {{knowledge}}, {{topics}}, and previous tweets (Post Examples). Previous tweets are attached as a reference to understand the way {{agentName}} tweets. The tweet should still align with the views of {{agentName}} and be concise, clear, and engaging. Follow the same rules for length and format. News is the first priority; if news exists, prioritize it over all other factors. Do not start the tweet with quotes.
@@ -741,10 +741,9 @@ export class TwitterPostClient {
             maxContentPerTweet,
             totalParts
         );
-        const actualTotalParts = parts.length;
-
-        // Array to store the IDs of all tweets in the thread
+        const actualTotalParts = parts.length;        // Array to store the IDs of all tweets in the thread
         const tweetIds: string[] = [];
+        const tweetContentsArray: string[] = [];
         let previousTweetId: string | undefined = undefined;
 
         let storeTweetIfThread = true;
@@ -807,21 +806,18 @@ export class TwitterPostClient {
                 // Store the ID for the next tweet in the thread
                 previousTweetId = tweet.id;
                 tweetIds.push(tweet.id);
-
-                // Update the tweet text to match the final version that was posted
+                tweetContentsArray.push(tweetContent);                // Update the tweet text to match the final version that was posted
                 tweet.text = tweetContent;
 
-                // Process and cache the tweet
+                // Process and cache the tweet (but don't store in DB for threads)
                 await this.processAndCacheTweet(
                     this.runtime,
                     this.client,
                     tweet,
                     roomId,
                     tweetContent,
-                    storeTweetIfThread
+                    false // Never store individual tweets for threads
                 );
-
-                storeTweetIfThread = false;
                 // Add a short delay between tweets to avoid rate limiting
                 await new Promise((resolve) => setTimeout(resolve, 3000)); // 3 second delay
             } catch (error) {
@@ -831,6 +827,9 @@ export class TwitterPostClient {
                 );
                 break; // Stop posting remaining tweets if an error occurs
             }
+        }        // Store the entire thread as a single entry in the database
+        if (tweetIds.length > 0 && tweetContentsArray.length > 0) {
+            await this.storeTwitterThread(tweetIds, tweetContentsArray, roomId);
         }
 
         return tweetIds;
@@ -1411,7 +1410,7 @@ Tweet: ${tweetTextForPosting}
             const state = await this.runtime.composeState(
                 {
                     userId: this.runtime.agentId,
-                    roomId: roomId,
+                    roomId,
                     agentId: this.runtime.agentId,
                     content: {
                         text: topics || "",
@@ -2180,6 +2179,7 @@ Tweet: ${tweetTextForPosting}
                     text: "Reply with '👍' to post or '❌' to discard, This will automatically expire and remove after 24 hours if no response received",
                 },
                 timestamp: new Date().toISOString(),
+
             };
 
             const channel = await this.discordClientForApproval.channels.fetch(
@@ -2405,4 +2405,109 @@ Tweet: ${tweetTextForPosting}
             }
         }
     }
+
+    /**
+     * Stores Twitter thread data in the database as a single entry with all tweet contents as strings
+     * 
+     * @param tweetIds Array of tweet IDs in the thread
+     * @param tweetContents Array of tweet content strings
+     * @param roomId The room ID for this thread
+     */
+    private async storeTwitterThread(
+        tweetIds: string[],
+        tweetContents: string[],
+        roomId: UUID
+    ) {
+        const date = new Date();
+        const formattedDate = date.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long", 
+            day: "numeric",
+        });
+        const formattedTime = date.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+        });        const divider = "=".repeat(50);
+        let infoOutput = `\n${divider}\n`;
+        
+        if (tweetContents.length > 1) {
+            infoOutput += `TWITTER THREAD INFORMATION:\n`;
+            infoOutput += `Thread IDs: ${tweetIds.join(", ")}\n`;
+        } else {
+            infoOutput += `TWEET INFORMATION:\n`;
+            infoOutput += `Tweet ID: ${tweetIds[0]}\n`;
+        }
+        
+        infoOutput += `${divider}\n`;
+        infoOutput += `Date: ${formattedDate}\n`;
+        infoOutput += `Time: ${formattedTime}\n`;
+        
+        if (tweetContents.length > 1) {
+            infoOutput += `Thread Content:\n`;
+            tweetContents.forEach((content, index) => {
+                infoOutput += `  ${index + 1}/${tweetContents.length}: ${content}\n`;
+            });
+        } else {
+            infoOutput += `Content: ${tweetContents[0]}\n`;
+        }
+        
+        infoOutput += `${divider}\n`;
+        elizaLogger.info(infoOutput);
+
+        // Extract hashtags from all tweet contents
+        const allContent = tweetContents.join(" ");
+        const hashtagRegex = /#(\w+)/g;
+        const extractedHashtags = [];
+        let match;
+        while ((match = hashtagRegex.exec(allContent)) !== null) {
+            extractedHashtags.push(match[1]);
+        }
+
+        // Create thread/tweet data object for database storage
+        const threadDataPG: TweetData = {
+            sender: "carbontruth",
+            tweetData: {
+                tweetID: tweetIds[0], // Use the first tweet ID as the main ID
+                date: String(formattedDate),
+                time: String(formattedTime),
+                tweetLnk: `https://twitter.com/${this.twitterUsername}/status/${tweetIds[0]}`, // Link to first tweet
+                content: tweetContents.join(" | "), // Join all contents with separator
+                hashtags: extractedHashtags,
+                imageUrl: [], // TODO: Extract image URLs if needed
+            },
+        };        const tweetSender = new TweetDataSender();
+        
+        if (tweetContents.length > 1) {
+            elizaLogger.log(`Thread Data: ${JSON.stringify(threadDataPG)}`);
+        } else {
+            elizaLogger.log(`Tweet Data: ${JSON.stringify(threadDataPG)}`);
+        }
+
+        try {
+            const id = await tweetSender.sendTweetObject(threadDataPG);
+            if (id !== null) {
+                if (tweetContents.length > 1) {
+                    elizaLogger.log(`Twitter thread inserted with DB ID: ${id}`);
+                } else {
+                    elizaLogger.log(`Tweet inserted with DB ID: ${id}`);
+                }
+            } else {
+                if (tweetContents.length > 1) {
+                    elizaLogger.log("Twitter thread already exists or was not inserted.");
+                } else {
+                    elizaLogger.log("Tweet already exists or was not inserted.");
+                }
+            }
+        } catch (error) {
+            if (tweetContents.length > 1) {
+                elizaLogger.error("Error inserting Twitter thread:", String(error));
+            } else {
+                elizaLogger.error("Error inserting tweet:", String(error));
+            }
+        }
+    }
+
+    // ...existing code...
 }
