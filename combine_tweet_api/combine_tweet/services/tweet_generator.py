@@ -54,13 +54,12 @@ Merge the following contents:
 FACT (about {self.fact_weight * 100:.0f}%): {fact_part}
 CONTEXT (about {self.rant_weight * 100:.0f}%): {rant_part}
 
-Write the tweet following the guidelines above:"""
+Write the tweet following the guidelines above:"""    
 
     def generate_combined_tweet(self, carbon_content, rant_content):
         carbon_text, carbon_urls = self.url_processor.extract_urls(carbon_content)
         rant_text, rant_urls = self.url_processor.extract_urls(rant_content)
         all_urls = carbon_urls + rant_urls
-
         prompt = self.generate_prompt(carbon_text, rant_text)
         try:
             combined = self.llm.generate(carbon_text, rant_text)
@@ -93,6 +92,7 @@ Write the tweet following the guidelines above:"""
             }
 
     def validate_and_improve_tweet(self, tweet_text, urls=None):
+        text=tweet_text
         urls = urls or []
         safety_status, safety_data = self.api_client.call_api(self.safety_api, tweet_text)
         print("safety_data", safety_data)
@@ -111,10 +111,11 @@ Write the tweet following the guidelines above:"""
             safety_status, safety_data = self.api_client.call_api(self.safety_api, tweet_text)
         if safety_status != 'approved' and not self.proceed_regardless:
             return None, safety_data, None
-
+        
+        print(tweet_text)
         popularity_status, popularity_data = self.api_client.call_api(self.popularity_api, tweet_text)
         print("popularity_data", popularity_data)
-        retries = 0
+        retries = 2
         while popularity_status != 'approved' and retries < self.max_retries:
             retries += 1
             reason = 'popularity'
@@ -127,13 +128,15 @@ Write the tweet following the guidelines above:"""
             tweet_text, more_urls = self.url_processor.extract_urls(new_text)
             urls = list(set(urls + more_urls))
             popularity_status, popularity_data = self.api_client.call_api(self.popularity_api, tweet_text)
+            print("popularity_data", popularity_data)
         if popularity_status != 'approved' and not self.proceed_regardless:
             return None, safety_data, popularity_data
+        print(tweet_text)
 
         if urls:
             tweet_text = self.url_processor.append_urls_to_text(tweet_text, urls, self.char_limit)
 
-        return tweet_text, safety_data, popularity_data
+        return text, safety_data, popularity_data
 
     def _fix_truncation(self, text):
         if not text:
