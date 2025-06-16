@@ -5,9 +5,25 @@ import { elizaLogger } from "@elizaos/core";
  * using external API services.
  */
 export class TweetChecker {
-  private readonly safetyApiUrl: string = 'http://127.0.0.1:8000/api/safety/';
-  private readonly popularityApiUrl: string = 'http://127.0.0.1:8000/api/popularity/';
-  private readonly acceptedPopularityScore: number = 10;
+  private readonly safetyApiUrl: string;
+  private readonly popularityApiUrl: string;
+  private readonly acceptedPopularityScore: number;
+
+  /**
+   * Creates a new TweetChecker instance
+   * @param safetyApiUrl URL for the safety check API, defaults to localhost
+   * @param popularityApiUrl URL for the popularity prediction API, defaults to localhost
+   * @param acceptedPopularityScore The threshold score for considering a tweet popular, defaults to 10
+   */
+  constructor(
+    safetyApiUrl: string = 'http://127.0.0.1:8000/api/safety/',
+    popularityApiUrl: string = 'http://127.0.0.1:8000/api/popularity/',
+    acceptedPopularityScore: number = 10
+  ) {
+    this.safetyApiUrl = safetyApiUrl;
+    this.popularityApiUrl = popularityApiUrl;
+    this.acceptedPopularityScore = acceptedPopularityScore;
+  }
 
   /**
    * Checks if a tweet is safe (doesn't contain inappropriate content)
@@ -30,7 +46,7 @@ export class TweetChecker {
 
       const data = await response.json();
       // API returns is_appropriate as a boolean
-      return data.is_appropriate === true;
+      return data.text_safety_score.is_appropriate === true;
     } catch (error) {
       console.error('Error checking tweet safety:', error);
       // Default to false (unsafe) if the check fails

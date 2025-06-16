@@ -32,6 +32,20 @@ interface ImageUploadData {
   imgIds: string[];
 }
 
+// Expected tweet response format:
+// {
+//   id: number;
+//   content: string;
+//   hashtags: string[];
+//   bot: string;
+//   category: string;
+//   url: string;
+//   when_to_post: string;
+//   created_at: string;
+//   is_posted: boolean;
+//   posted_tweet_link: string | null;
+// }
+
 class NewsService {
   private readonly API_KEY_NEWS: string;
   private readonly API_KEY_GNEWS: string;
@@ -152,12 +166,13 @@ class NewsService {
       )
       .join("\n\n");
   }
-  
-  async buildNewsPrompt(articlesText: string): Promise<string> {
+
+  async buildNewsPrompt(runtime: IAgentRuntime, articlesText: string): Promise<string> {
 
     const sender = "carbontruth"; // or "default"
     const count = 10;
-    const apiUrl = `http://127.0.0.1:5000/api/tweets/latest_n?sender=${sender}&count=${count}`;
+    // const apiUrl = `http://127.0.0.1:8000/api/tweets/latest_n?sender=${sender}&count=${count}`;
+    const apiUrl = runtime.getSetting("ELIZA_GET_N_LATEST_TWEETS");
 
     let existingArticles = "";
 
@@ -205,16 +220,32 @@ class NewsService {
       Respond with:
       {"content": "[Chosen news content/summary]", "url": "[Chosen news URL]"}
     `;
-}
+}  async fetchNews(runtime: IAgentRuntime, message: Memory): Promise<string | null> {
+    // First, check for scheduled tweets
+  const scheduledTweet = await this.checkScheduledTweet(runtime);
+  let chosenNews = "";
+  if (scheduledTweet) {
+    elizaLogger.info("Using scheduled tweet instead of generating new content");
 
-  
-  async fetchNews(runtime: IAgentRuntime, message: Memory): Promise<string | null> {
+    const fixprompt = `Here is the news article ${scheduledTweet}. Convert the article to the below JSON format.
+    {"content": "[Chosen news content/summary]", "url": "[Chosen news URL]"}`
+
+    chosenNews = await generateText({
+      runtime,
+      context: fixprompt,
+      modelClass: ModelClass.SMALL,
+      stop: ["\n"],
+    });
+
+    elizaLogger.info("Scheduled tweet content:", String(chosenNews) as string);
+  }
+  else {
+    // If no scheduled tweet or it's not time yet, proceed with normal flow
     // Set random country before fetching news
     this.params.country = this.getRandomCountry();
     elizaLogger.info(`Fetching news for country: ${this.params.country}`);
     
     // const data = await this.fetchNewsFromGnewsApi();
-
 
     const data = await this.fetchGeminiOutput();
     if (!data) {
@@ -223,19 +254,19 @@ class NewsService {
     }
     
     // const articlesText = this.processArticles(data.articles);
-    const prompt = await this.buildNewsPrompt(data);
+    const prompt = await this.buildNewsPrompt(runtime, data);
 
     elizaLogger.info("Prompt for news generation:", String(prompt) as string);
     
     elizaLogger.info("Generating news prompt");
-    let chosenNews = await generateText({
+    chosenNews = await generateText({
       runtime,
       context: prompt,
       modelClass: ModelClass.MEDIUM,
       stop: ["\n"],
     });
     elizaLogger.info("News prompt generated", String(chosenNews) as string);
-    
+  }
     try {
       const newsJSON = JSON.parse(chosenNews);
       if (newsJSON.url) {
@@ -245,10 +276,9 @@ class NewsService {
     } catch (error) {
       elizaLogger.error("Failed to parse news JSON:", error);
     }
-    
-    return this.formatNewsForAgent(chosenNews);
+      return this.formatNewsForAgent(chosenNews);
   }
-
+  
   private formatNewsForAgent(newsContent: string): string {
     const header = `#Here is the news article. Consider the article below and write a tweet about the article. Ensure the tweet includes the article link at the end. All this must be less than {{maxTweetLength}} characters. Override every other instruction mentioned. Consider only the news article below.\n`;
     
@@ -256,6 +286,69 @@ class NewsService {
       .replace("{{maxTweetLength}}", "280");
     
     return formattedNews;
+  }
+  /**
+   * Checks for scheduled tweets from the API
+   * @param runtime The agent runtime context
+   * @returns A formatted news article if a scheduled tweet exists and is due, otherwise null
+   */
+  async checkScheduledTweet(runtime: IAgentRuntime): Promise<string | null> {
+    const scheduledTweetEndpoint = runtime.getSetting("ELIZA_QUEUE_TWEET");
+    
+    if (!scheduledTweetEndpoint) {
+      elizaLogger.warn("No scheduled tweet endpoint configured");
+      return null;
+    }
+      try {
+      elizaLogger.info("Checking for scheduled tweets");
+      const response = await fetch(scheduledTweetEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: "carbontruth"
+        }),
+      });
+
+      if (!response.ok) {
+        elizaLogger.warn(`Failed to fetch scheduled tweets: ${response.status} - ${response.statusText}`);
+        return null;
+      }
+        // Parse the response, which could be a single tweet or an array
+      const responseData = await response.json();
+      const queue_id = responseData.id; 
+      // Handle both cases: single tweet object or array of tweets
+      const tweets = Array.isArray(responseData) ? responseData : [responseData];
+      
+      if (tweets.length === 0) {
+        elizaLogger.info("No scheduled tweets available");
+        return null;
+      }
+      
+      // Find tweets that are not yet posted (ignoring scheduled time)
+      const pendingTweets = tweets
+        .filter(tweet => !tweet.is_posted)
+        .sort((a, b) => new Date(a.when_to_post).getTime() - new Date(b.when_to_post).getTime());
+      
+      if (pendingTweets.length > 0) {
+        const nextTweet = pendingTweets[0];
+        elizaLogger.info(`Found scheduled tweet (ID: ${nextTweet.id}) that will be posted`);
+        
+        // Format the tweet as a news article
+        return this.formatNewsForAgent(
+          JSON.stringify({
+            content: nextTweet.content,
+            url: nextTweet.url
+          })
+        );      } else {
+        elizaLogger.info("No pending tweets found");
+        return null;
+      }
+    } catch (error) {
+      elizaLogger.error("Error checking scheduled tweets:", error);
+      return null;
+    }
   }
 
   /**
@@ -363,34 +456,26 @@ export const newsProvider: Provider = {
     const agentImageKey = `${runtime.character.name}/imageUploadData`;
     const agentImageUploadData = await runtime.cacheManager.get<ImageUploadData>(agentImageKey);
 
-    elizaLogger.info(`News upload data status: ${agentUploadData?.isNews}`);
+    elizaLogger.info(`News upload data status: ${String(agentUploadData?.isNews) as string}`);
 
-    if (!agentUploadData?.isNews || !agentImageUploadData) {
-      if (agentImageUploadData) {
-        const imageData: ImageUploadData = {
-          isImg: true,
-          imgIds: agentImageUploadData.imgIds || []
-        };
-        await runtime.cacheManager.set(agentImageKey, imageData);
-      }
-      return null;
-    }
-
+    // if (!agentUploadData?.isNews || !agentImageUploadData) {
+    //   if (agentImageUploadData) {
+    //     const imageData: ImageUploadData = {
+    //       isImg: true,
+    //       imgIds: agentImageUploadData.imgIds || []
+    //     };
+    //     await runtime.cacheManager.set(agentImageKey, imageData);      }
+    //   return null;
+    // }
+    
     elizaLogger.info("Fetching news");
     const article = await newsService.fetchNews(runtime, message);
-    
-    if (article) {
-      elizaLogger.info("News fetched successfully");
-      
-      // const updatedData: NewsUploadData = {
-      //   isNews: false,
-      //   lastUpdatedNews: new Date().toISOString(),
-      // };
-      
-      // await runtime.cacheManager.set(agentKey, updatedData);
-      return article;
+    if (!article) {
+      elizaLogger.info("No news article found");
+      return null;
     }
     
-    return null;
-  },
+    elizaLogger.info("News fetched successfully");
+    return article;
+  }
 };

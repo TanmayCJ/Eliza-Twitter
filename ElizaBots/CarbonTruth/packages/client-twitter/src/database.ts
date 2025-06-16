@@ -1,3 +1,6 @@
+import { elizaLogger } from "@elizaos/core";
+
+import { IAgentRuntime } from "@elizaos/core";
 /**
  * Tweet data nested interface matching the expected structure
  */
@@ -79,49 +82,78 @@ function formatTime(timeInput: string | Date): string {
  * TweetDataSender class for sending tweet data to the Flask API
  */
 export class TweetDataSender {
-    private apiUrl: string;
-
-    /**
+    private apiUrl: string;    /**
      * Create a new TweetDataSender
      * @param apiUrl - The URL of the API endpoint
      */
-    constructor(apiUrl: string = 'http://127.0.0.1:9004/api/tweets') {
+    constructor(apiUrl: string = 'http://127.0.0.1:8000/api/tweets/') {
         this.apiUrl = apiUrl;
-    }
-    /**
+    }/**
      * Send tweet data using an already constructed tweet object
-     * @param tweetDataObject - Object containing sender and tweetData fields
+     * @param tweetDataObject - Object containing sender and tweetData fields OR the new format with tweet_id, tweet_link, etc.
      * @returns Promise that resolves with the API response
      */
-    async sendTweetObject(tweetDataObject: TweetData): Promise<ApiResponse> {
-        try {
-            // Validate the structure of the tweet object
-            if (!tweetDataObject.sender || !tweetDataObject.tweetData) {
-                throw new Error('Invalid tweet data object structure. Must contain sender and tweetData fields.');
-            }
+    async sendTweetObject(tweetDataObject: any): Promise<ApiResponse> {        try {
+            let formattedTweetData: any;
             
-            // Create a copy of the tweet data to format dates correctly
-            const formattedTweetData: TweetData = {
-                sender: tweetDataObject.sender,
-                tweetData: {
-                    ...tweetDataObject.tweetData,
-                    // Format date and time to the expected format
-                    date: formatDate(tweetDataObject.tweetData.date),
-                    time: formatTime(tweetDataObject.tweetData.time)
+            // Check if incoming data is in the new format (has tweet_id instead of tweetData)
+            if (tweetDataObject.tweet_id && !tweetDataObject.tweetData) {
+                // Already in the new format, just validate and use it
+                if (!tweetDataObject.sender || !tweetDataObject.tweet_id || !tweetDataObject.content || !tweetDataObject.tweet_link) {
+                    throw new Error('Invalid tweet data object structure. Must contain sender, tweet_id, content, and tweet_link fields.');
                 }
-            };
+                
+                formattedTweetData = {
+                    sender: tweetDataObject.sender,
+                    tweet_id: tweetDataObject.tweet_id,
+                    content: tweetDataObject.content,
+                    tweet_link: tweetDataObject.tweet_link,
+                    hashtags: tweetDataObject.hashtags || [],
+                    image_urls: tweetDataObject.image_urls || []
+                };
+            } else {
+                // Handle original format: convert { sender, tweetData: { tweetID, date, time, ... } } to new format
+                if (!tweetDataObject.sender || !tweetDataObject.tweetData) {
+                    throw new Error('Invalid tweet data object structure. Must contain sender and tweetData fields.');
+                }
+                
+                // Convert old format to new format
+                formattedTweetData = {
+                    sender: tweetDataObject.sender,
+                    tweet_id: tweetDataObject.tweetData.tweetID,
+                    content: tweetDataObject.tweetData.content,
+                    tweet_link: tweetDataObject.tweetData.tweetLnk,
+                    hashtags: tweetDataObject.tweetData.hashtags || [],
+                    image_urls: tweetDataObject.tweetData.imageUrl || []
+                };
+            }
+              // Make the API call
+            elizaLogger.log('Sending tweet object to:', this.apiUrl);
+            elizaLogger.log('Request payload:', JSON.stringify(formattedTweetData, null, 2));
             
-            // Make the API call
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(formattedTweetData)
-            });
-
-            // Parse the response
-            const responseData: ApiResponse = await response.json();
+            });            elizaLogger.log('Response status:', response.status);
+            elizaLogger.log('Response status text:', response.statusText);
+            
+            // Get the raw response text first
+            const responseText = await response.text();
+            elizaLogger.log('Raw response text:', responseText);
+            
+            // Try to parse as JSON
+            let responseData: ApiResponse;
+            try {
+                responseData = JSON.parse(responseText);
+                elizaLogger.log('Parsed response data:', responseData);
+            } catch (parseError) {
+                elizaLogger.error('Failed to parse response as JSON:', parseError);
+                elizaLogger.error('Response was:', responseText.substring(0, 500));
+                throw new Error(`API returned non-JSON response: ${responseText.substring(0, 200)}`);
+            }
             
             if (!response.ok) {
                 throw new Error(`API error: ${responseData.error || response.statusText}`);
@@ -138,8 +170,7 @@ export class TweetDataSender {
      * Get all tweets from a specific sender
      * @param sender - The sender identifier
      * @returns Promise that resolves with array of tweets
-     */
-    async getTweets(sender: 'carbontruth' | 'default' = 'carbontruth'): Promise<TweetDataContent[]> {
+     */    async getTweets(sender: 'carbontruth' | 'default' = 'carbontruth'): Promise<TweetDataContent[]> {
         try {
             const response = await fetch(`${this.apiUrl}?sender=${sender}`);
             const data = await response.json();
@@ -161,10 +192,9 @@ export class TweetDataSender {
      * @param tweetID - The tweet ID to retrieve
      * @param sender - The sender identifier
      * @returns Promise that resolves with the tweet data
-     */
-    async getTweetById(tweetID: string, sender: 'carbontruth' | 'default' = 'carbontruth'): Promise<TweetDataContent> {
+     */    async getTweetById(tweetID: string, sender: 'carbontruth' | 'default' = 'carbontruth'): Promise<TweetDataContent> {
         try {
-            const response = await fetch(`${this.apiUrl}/${tweetID}?sender=${sender}`);
+            const response = await fetch(`${this.apiUrl}${tweetID}/?sender=${sender}`);
             const data = await response.json();
             
             if (!response.ok) {
@@ -182,10 +212,9 @@ export class TweetDataSender {
     /**
      * Get list of valid senders
      * @returns Promise that resolves with the list of valid senders
-     */
-    async getValidSenders(): Promise<string[]> {
+     */    async getValidSenders(): Promise<string[]> {
         try {
-            const response = await fetch(`${this.apiUrl.replace('/tweets', '/senders')}`);
+            const response = await fetch(`${this.apiUrl.replace('/tweets/', '/senders/')}`);
             const data = await response.json();
             
             if (!response.ok) {

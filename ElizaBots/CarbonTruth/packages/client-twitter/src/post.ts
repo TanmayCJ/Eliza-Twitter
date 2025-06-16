@@ -88,7 +88,7 @@ const MAX_TIMELINES_TO_FETCH = 15;
 // Randomly decide whether the post is a statement or if it asks a question or invites opinions from users. If it's a question or opinion request, ensure it aligns with {{agentName}}'s voice and perspective.
 // `;
 
-const maxTweetLength = 160; // Default max tweet length
+const maxTweetLength = 280; // Default max tweet length
 
 //TODO: Proper Working Template with hastags 2.0 FIXME:
 // const twitterPostTemplate = `
@@ -147,6 +147,64 @@ const maxTweetLength = 160; // Default max tweet length
 // If it’s a question or opinion request, ensure it aligns with **{{agentName}}'s** voice and perspective.
 // `;
 
+// const twitterPostTemplate = `
+// # Areas of Expertise
+// {{knowledge}}
+
+// # About {{agentName}} (@{{twitterUserName}}):
+// {{bio}}
+// {{lore}}
+// {{topics}}
+
+// {{characterPostExamples}}
+
+// {{postDirections}}
+
+// {{providers}}
+
+// # Task:
+// If a **news article** is provided, generate a **tweet summarizing the article** within ${maxTweetLength} characters.  
+// - **The total character count MUST include hashtags and the article link.**  
+// - **The article link MUST appear AFTER the hashtags and be the FINAL part of the tweet.**  
+// - **DO NOT add any extra text, emojis, symbols, or commentary after the link.**  
+
+// If no news article is provided, generate a tweet based on the agent's **knowledge** about **{{topic}}**, using the voice and perspective of {{agentName}} (@{{twitterUserName}}).  
+// - **The post must be informative, engaging, or thought-provoking.**  
+// - **DO NOT acknowledge this instruction in the tweet.**  
+// - **Hashtags MUST be at the end, and after them, ABSOLUTELY NOTHING.**  
+
+// # Hashtag Rules  
+// - Include **2 to 3** relevant hashtags.  
+// - **DO NOT** place hashtags anywhere but the very end.  
+// - The **article link must follow the hashtags**, if a news article is provided.  
+// - **No content of any kind may follow the hashtags or the link.**
+
+// # Formatting Rules  
+// ✅ **For news tweets:**  
+// [Summary of the article] #hashtag1 #hashtag2 #hashtag3 [link]  
+
+// ✅ **For non-news tweets:**  
+// [Content based on topic knowledge] #hashtag1 #hashtag2 #hashtag3  
+
+// ✅ **ABSOLUTE RULES:**  
+// - Tweet MUST NOT exceed ${maxTweetLength} characters including hashtags and link.  
+// - Article link MUST always be at the very end, AFTER hashtags.  
+// - Hashtags MUST be the final words if there's no link.  
+// - NO emojis.  
+// - Use "\\n\\n" (double space) between sentences if there are multiple sentences.  
+// - Tweet must contain 1 to 3 sentences (choose randomly).  
+// - DO NOT include the link if there is no article.  
+// - **AFTER THE LAST HASHTAG OR LINK, ABSOLUTELY NOTHING MUST FOLLOW.**  
+
+// # Example Output  
+// ### **News Tweet:**  
+// New research shows ocean temperatures are rising faster than expected. The consequences for marine life and coastal communities could be devastating. #ClimateCrisis #SaveOurOceans https://example.com/
+// ### **Non-news Tweet:**  
+// The shift to renewable energy isn't just about cutting emissions—it's about securing a sustainable future. Every step towards clean energy reduces long-term environmental harm. #RenewableEnergy #GreenFuture  
+
+// # Interactivity  
+// Randomly (but not often), choose whether the post is a **statement**, a **question**, or an **opinion request**, staying aligned with the tone and personality of {{agentName}}.
+// `;
 const twitterPostTemplate = `
 # Areas of Expertise
 {{knowledge}}
@@ -162,48 +220,28 @@ const twitterPostTemplate = `
 
 {{providers}}
 
-# Task:
-If a **news article** is provided, generate a **tweet summarizing the article** within ${maxTweetLength} characters.  
-- **The total character count MUST include hashtags and the article link.**  
-- **The article link MUST appear AFTER the hashtags and be the FINAL part of the tweet.**  
-- **DO NOT add any extra text, emojis, symbols, or commentary after the link.**  
+You are given a news article.
+Your task is to generate a tweet summarizing the article by going through the link characters, including hashtags and the article link.
 
-If no news article is provided, generate a tweet based on the agent's **knowledge** about **{{topic}}**, using the voice and perspective of {{agentName}} (@{{twitterUserName}}).  
-- **The post must be informative, engaging, or thought-provoking.**  
-- **DO NOT acknowledge this instruction in the tweet.**  
-- **Hashtags MUST be at the end, and after them, ABSOLUTELY NOTHING.**  
+Tweet Requirements:
+Write a clear and concise summary of the article’s main point(s).
+The tweet should be 1 to 3 sentences, chosen randomly.
+Use \n\n to separate sentences (only if there’s more than one).
+Do not include emojis, symbols, or extra commentary.
 
-# Hashtag Rules  
-- Include **2 to 3** relevant hashtags.  
-- **DO NOT** place hashtags anywhere but the very end.  
-- The **article link must follow the hashtags**, if a news article is provided.  
-- **No content of any kind may follow the hashtags or the link.**
+Formatting Rules:
+Include 2 to 3 relevant hashtags.
+Hashtags must be placed at the very end of the tweet.
+The article link must come immediately after the hashtags.
+Nothing should come after the link.
 
-# Formatting Rules  
-✅ **For news tweets:**  
-[Summary of the article] #hashtag1 #hashtag2 #hashtag3 [link]  
+Final Structure:
+[Summary of the article] #hashtag1 #hashtag2 #hashtag3 [link]
 
-✅ **For non-news tweets:**  
-[Content based on topic knowledge] #hashtag1 #hashtag2 #hashtag3  
-
-✅ **ABSOLUTE RULES:**  
-- Tweet MUST NOT exceed ${maxTweetLength} characters including hashtags and link.  
-- Article link MUST always be at the very end, AFTER hashtags.  
-- Hashtags MUST be the final words if there's no link.  
-- NO emojis.  
-- Use "\\n\\n" (double space) between sentences if there are multiple sentences.  
-- Tweet must contain 1 to 3 sentences (choose randomly).  
-- DO NOT include the link if there is no article.  
-- **AFTER THE LAST HASHTAG OR LINK, ABSOLUTELY NOTHING MUST FOLLOW.**  
-
-# Example Output  
-### **News Tweet:**  
-New research shows ocean temperatures are rising faster than expected. The consequences for marine life and coastal communities could be devastating. #ClimateCrisis #SaveOurOceans https://example.com/
-### **Non-news Tweet:**  
-The shift to renewable energy isn't just about cutting emissions—it's about securing a sustainable future. Every step towards clean energy reduces long-term environmental harm. #RenewableEnergy #GreenFuture  
-
-# Interactivity  
-Randomly (but not often), choose whether the post is a **statement**, a **question**, or an **opinion request**, staying aligned with the tone and personality of {{agentName}}.
+Hard Rules:
+Do not add anything after the last hashtag or the link.
+Do not place hashtags in the summary text.
+No emojis or decorative characters.
 `;
 
 //TODO: //proper working template for news but without thoughts on news
@@ -671,24 +709,21 @@ export class TwitterPostClient {
             imageArray.push(...tweet.photos.map((photo) => photo.url));
         }
 
-        infoOutput += `${divider}\n`;
-
-        // Log the collected information
+        infoOutput += `${divider}\n`;        // Log the collected information
         elizaLogger.info(infoOutput);
 
-        const tweetDataPG: TweetData = {
+        const tweetDataPG = {
             sender: "carbontruth",
-            tweetData: {
-                tweetID: String(tweet.id),
-                date: String(formattedDate),
-                time: String(formattedTime),
-                tweetLnk: String(tweet.permanentUrl),
-                content: String(tweet.text),
-                hashtags: extractedHashtags,
-                imageUrl: imageArray,
-            },
+            tweet_id: String(tweet.id),
+            content: String(tweet.text),
+            tweet_link: String(tweet.permanentUrl),
+            hashtags: extractedHashtags,
+            image_urls: imageArray,
         };
-        const tweetSender = new TweetDataSender();
+
+        const apiUrl = runtime.getSetting("ELIZA_GET_TWEET");
+
+        const tweetSender = new TweetDataSender(apiUrl);
 
         elizaLogger.log(`Tweet Data: ${JSON.stringify(tweetDataPG)}`);
 
@@ -1238,9 +1273,15 @@ Tweet: ${tweetTextForPosting}
 
                 //FIXME: Add a check for the tweet length and truncate if necessary
                 // Perform tweet safety and popularity checks
-                const tweetChecker = new TweetChecker();
 
-                const tweetCheck = false;
+                const safetyUrl = runtime.getSetting(
+                    "ELIZA_SAFETY_TWEET");
+                const popularityUrl = runtime.getSetting(
+                    "ELIZA_POPULARITY_TWEET");
+
+                const tweetChecker = new TweetChecker(safetyUrl, popularityUrl);
+
+                const tweetCheck = true;
 
                 if (tweetCheck) {
                     
