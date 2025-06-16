@@ -130,24 +130,24 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 #utils -> caption_service -> image_captioner.py
-AWS_REGION = config("AWS_REGION")
-AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = config("AWS_REGION", default="us-east-1")
+AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="")
+AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="")
 
-OPENAI_API_KEY = config("OPENAI_API_KEY")
-OPENAI_API_BASE_URL_V1 = config("OPENAI_API_BASE_URL_V1")
+OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+OPENAI_API_BASE_URL_V1 = config("OPENAI_API_BASE_URL_V1", default="https://api.openai.com/v1")
 
-PEXEL_API_KEY = config("PEXEL_API_KEY")
-PEXEL_API_BASE_URL = config("PEXEL_API_BASE_URL")
+PEXEL_API_KEY = config("PEXEL_API_KEY", default="")
+PEXEL_API_BASE_URL = config("PEXEL_API_BASE_URL", default="https://api.pexels.com")
 
-POPULARITY_SCORE_ENDPOINT = config("POPULARITY_SCORE_ENDPOINT")
-SAFETY_SCORE_ENDPOINT = config("SAFETY_SCORE_ENDPOINT")
-COMPARE_HASHTAGS_ENDPOINT = config("COMPARE_HASHTAGS_ENDPOINT")
+POPULARITY_SCORE_ENDPOINT = config("POPULARITY_SCORE_ENDPOINT", default="/api/popularity/")
+SAFETY_SCORE_ENDPOINT = config("SAFETY_SCORE_ENDPOINT", default="/api/safety/")
+COMPARE_HASHTAGS_ENDPOINT = config("COMPARE_HASHTAGS_ENDPOINT", default="/api/hashtags/compare/")
 
-TWEETS_ENDPOINT = config("TWEETS_ENDPOINT")
-LATEST_TWEET_ENDPOINT = config("LATEST_TWEET_ENDPOINT")
-VALID_SENDERS_ENDPOINT = config("VALID_SENDERS_ENDPOINT")
+TWEETS_ENDPOINT = config("TWEETS_ENDPOINT", default="/api/tweets/")
+LATEST_TWEET_ENDPOINT = config("LATEST_TWEET_ENDPOINT", default="/api/tweets/latest/")
+VALID_SENDERS_ENDPOINT = config("VALID_SENDERS_ENDPOINT", default="/api/senders/valid/")
 
-ENVIRONMENTAL_NEWS_ENDPOINT = config("ENVIRONMENTAL_NEWS_ENDPOINT")
-IMAGEGEN_ENDPOINT = config("IMAGEGEN_ENDPOINT")
-QUEUED_TWEET_ENDPOINT = config("QUEUED_TWEET_ENDPOINT")
+ENVIRONMENTAL_NEWS_ENDPOINT = config("ENVIRONMENTAL_NEWS_ENDPOINT", default="/api/news/environmental/")
+IMAGEGEN_ENDPOINT = config("IMAGEGEN_ENDPOINT", default="/api/images/generate/")
+QUEUED_TWEET_ENDPOINT = config("QUEUED_TWEET_ENDPOINT", default="/api/tweets/queue/")
