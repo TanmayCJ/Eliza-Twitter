@@ -92,51 +92,85 @@ Write the tweet following the guidelines above:"""
             }
 
     def validate_and_improve_tweet(self, tweet_text, urls=None):
-        text=tweet_text
+        text = tweet_text
         urls = urls or []
         safety_status, safety_data = self.api_client.call_api(self.safety_api, tweet_text)
+        is_appropriate = self._extract_safety_appropriate(safety_data)
         print("safety_data", safety_data)
+        print("is_appropriate", is_appropriate)
+        if is_appropriate:
+            safety_status = 'approved'
+        else:
+            safety_status = 'not_approved'
         retries = 0
         while safety_status != 'approved' and retries < self.max_retries:
             retries += 1
             reason = 'safety'
-            if isinstance(safety_data, dict) and 'scores' in safety_data:
-                cat, score = max(safety_data['scores'].items(), key=lambda x: x[1])
-                if score > 0.8:
-                    reason = f'safety - high {cat} score'
             retry_prompt = build_retry_prompt(reason, tweet_text)
             new_text = self.llm.generate_from_prompt(retry_prompt)
             tweet_text, more_urls = self.url_processor.extract_urls(new_text)
             urls = list(set(urls + more_urls))
             safety_status, safety_data = self.api_client.call_api(self.safety_api, tweet_text)
+            is_appropriate = self._extract_safety_appropriate(safety_data)
+            if is_appropriate:
+                safety_status = 'approved'
+            else:
+                safety_status = 'not_approved'
         if safety_status != 'approved' and not self.proceed_regardless:
             return None, safety_data, None
         
         print(tweet_text)
         popularity_status, popularity_data = self.api_client.call_api(self.popularity_api, tweet_text)
-        print("popularity_data", popularity_data)
+        score = self._extract_popularity_score(popularity_data)
+        if score is not None and score < 30:
+            popularity_status = 'not_approved'
+        else:
+            popularity_status = 'approved'
         retries = 2
+        print("popularity_status", popularity_status,"score", score)
         while popularity_status != 'approved' and retries < self.max_retries:
             retries += 1
             reason = 'popularity'
-            if isinstance(popularity_data, dict) and 'predicted_score' in popularity_data:
-                reason = f"popularity - low engagement score ({popularity_data['predicted_score']:.2f}/10)"
-            elif isinstance(popularity_data, dict) and 'score' in popularity_data:
-                reason = f"popularity - low engagement score ({popularity_data['score']:.2f})"
+            score = self._extract_popularity_score(popularity_data)
+            if score is not None:
+                reason = f"popularity - low engagement score ({score:.2f})"
             retry_prompt = build_retry_prompt(reason, tweet_text)
             new_text = self.llm.generate_from_prompt(retry_prompt)
             tweet_text, more_urls = self.url_processor.extract_urls(new_text)
             urls = list(set(urls + more_urls))
             popularity_status, popularity_data = self.api_client.call_api(self.popularity_api, tweet_text)
             print("popularity_data", popularity_data)
+            score = self._extract_popularity_score(popularity_data)
+            if score is not None and score < 30:
+                popularity_status = 'not_approved'
+            else:
+                popularity_status = 'approved'
         if popularity_status != 'approved' and not self.proceed_regardless:
             return None, safety_data, popularity_data
-        print(tweet_text)
 
+        print("tweet_text", tweet_text)
         if urls:
-            tweet_text = self.url_processor.append_urls_to_text(tweet_text, urls, self.char_limit)
+            text = self.url_processor.append_urls_to_text(tweet_text, urls, self.char_limit)
 
-        return text, safety_data, popularity_data
+        return tweet_text, safety_data, popularity_data
+
+    def _extract_safety_appropriate(self, safety_data):
+        if (
+            isinstance(safety_data, dict)
+            and 'text_safety_score' in safety_data
+            and isinstance(safety_data['text_safety_score'], dict)
+            and 'is_appropriate' in safety_data['text_safety_score']
+        ):
+            return bool(safety_data['text_safety_score']['is_appropriate'])
+        return False
+
+    def _extract_popularity_score(self, popularity_data):
+        if isinstance(popularity_data, dict):
+            if 'predicted_score' in popularity_data:
+                return popularity_data['predicted_score']
+            if 'score' in popularity_data:
+                return popularity_data['score']
+        return None
 
     def _fix_truncation(self, text):
         if not text:

@@ -1,7 +1,13 @@
 def build_retry_prompt(reason, previous_tweet):
+    core_rules = """
+    HARD RULES:
+    - You MUST preserve the original theme and main fact/stat of the tweet. Do NOT omit or change the core message or factual content.
+    - Do NOT remove the central idea or the key data point/statistic from the original tweet.
+    - All improvements must keep the tweet's main point and factual basis intact.
+    """
     if reason == 'safety':
         issue_description = 'it may contain content that could be controversial or unsafe'
-        specific_guidance = """
+        specific_guidance = f"""{core_rules}
         - Focus on scientifically verified facts
         - Remove any politically charged language
         - Avoid making accusations against specific companies or individuals
@@ -10,7 +16,7 @@ def build_retry_prompt(reason, previous_tweet):
         """
     elif reason == 'popularity':
         issue_description = 'it may not resonate well with our audience or lacks engagement potential'
-        specific_guidance = """
+        specific_guidance = f"""{core_rules}
         - Include a specific, actionable data point
         - Add a clear call to action
         - Frame the issue in terms people care about (health, future, economy)
@@ -19,7 +25,7 @@ def build_retry_prompt(reason, previous_tweet):
         """
     else:
         issue_description = f'it has issues related to {reason}'
-        specific_guidance = """
+        specific_guidance = f"""{core_rules}
         - Focus on clear, verifiable information
         - Keep the message concise and direct
         - Emphasize the climate action aspect
