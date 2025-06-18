@@ -1,5 +1,5 @@
 """
-retrieve.py
+semantic_retriever.py
 
 • Loads cached:
     – tweets + tweet_vecs
@@ -14,7 +14,7 @@ from sentence_transformers import SentenceTransformer
 import os # Import the os module
 
 # ── Config ─────────────────────────────────────────────────────────────────
-# Get the directory of the current file (a4.py)
+# Get the directory of the current file (semantic_retriever.py)
 CURRENT_DIR = os.path.dirname(__file__)
 
 # Use os.path.join to create paths relative to the current directory
@@ -33,8 +33,8 @@ try:
     chunks     = pickle.load(open(CHUNKS_PKL, "rb"))
     chunk_vecs = np.load(CHUNKS_VEC)
 except FileNotFoundError as e:
-    print(f"Error loading data files in a4.py: {e}")
-    print("Please ensure the data files (tweets.pkl, tweet_vecs.npy, company_chunks.pkl, chunk_vecs.npy) are in the same directory as a4.py")
+    print(f"Error loading data files in semantic_retriever.py: {e}")
+    print("Please ensure the data files (tweets.pkl, tweet_vecs.npy, company_chunks.pkl, chunk_vecs.npy) are in the same directory as semantic_retriever.py")
     # Depending on how critical this data is, you might want to raise the exception,
     # or handle it more gracefully (e.g., initialize empty lists/arrays and log a warning).
     # For now, printing an informative error. If the application crashes here,

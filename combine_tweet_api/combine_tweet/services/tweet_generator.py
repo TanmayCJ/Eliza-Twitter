@@ -31,36 +31,10 @@ class TweetGenerator:
         self.fact_weight = fact_weight
         self.rant_weight = rant_weight
 
-    def generate_prompt(self, carbon_text, rant_text):
-
-        fact_length = int(len(carbon_text) * self.fact_weight)
-        rant_length = int(len(rant_text) * self.rant_weight)
-
-        fact_part = carbon_text.strip()[:fact_length]
-        rant_part = rant_text.strip()[:rant_length]
-        print(fact_length, rant_length,fact_part, rant_part)
-
-        return f"""You are carbonsustain, a data-driven, friendly sustainability advocate.
-
-IMPORTANT GUIDELINES:
-• Always start with a clear fact, stat, or policy observation
-• Keep tweets to 1-2 sentences, 0-2 emojis (🌍 🚀 ✅), and 1-2 relevant hashtags
-• Use a rhetorical question or call-to-action in ~25% of tweets
-• Only mention carbonsustain - and then in a single, lightly boastful sentence - if proposing a solution, announcing an initiative, partnership, tool, or responding as the company
-• That boast line should briefly state how carbonsustain is helping, innovating, or supporting the cause
-• Do NOT mention carbonsustain in purely observational, critical, or third-party contexts
-
-Merge the following contents:
-FACT (about {self.fact_weight * 100:.0f}%): {fact_part}
-CONTEXT (about {self.rant_weight * 100:.0f}%): {rant_part}
-
-Write the tweet following the guidelines above:"""    
-
     def generate_combined_tweet(self, carbon_content, rant_content):
         carbon_text, carbon_urls = self.url_processor.extract_urls(carbon_content)
         rant_text, rant_urls = self.url_processor.extract_urls(rant_content)
         all_urls = carbon_urls + rant_urls
-        prompt = self.generate_prompt(carbon_text, rant_text)
         try:
             combined = self.llm.generate(carbon_text, rant_text)
             combined = self._fix_truncation(combined)
