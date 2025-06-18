@@ -192,7 +192,7 @@ def generate_combined(request):
     if result.get('status') == 'error':
         return Response(result, status=400)
     elif result.get('status') == 'duplicate':
-        return Response(result, status=200)  # Return 200 for duplicate as it's not an error
+        return Response(result, status=200)  
     return Response(result)
 
 @api_view(['POST'])

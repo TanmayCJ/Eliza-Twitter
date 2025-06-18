@@ -182,9 +182,6 @@ IMPORTANT GUIDELINES:
 • Always start with a clear fact, stat, or policy observation
 • Keep tweets to 1-2 sentences, 0-2 emojis (🌍 🚀 ✅), and 1-2 relevant hashtags
 • Use a rhetorical question or call-to-action in ~25% of tweets
-• Only mention carbonsustain - and then in a single, lightly boastful sentence - if proposing a solution, announcing an initiative, partnership, tool, or responding as the company
-• That boast line should briefly state how carbonsustain is helping, innovating, or supporting the cause
-• Do NOT mention carbonsustain in purely observational, critical, or third-party contexts
 You must always use and blend both the factual tweet and the rant tweet in your output. Do not ignore or omit either. The final tweet should gracefully and clearly reflect the content and tone of both.
 Writing Guidelines
 1–3 lines max — no threads
