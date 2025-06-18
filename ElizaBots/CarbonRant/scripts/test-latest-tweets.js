@@ -39,7 +39,7 @@ async function testLatestTweets() {
         created_at: tweet.created_at,
         id: tweet.tweet_id || tweet.id,
         author_id: tweet.author_id || "unknown",
-        username: tweet.username || "CarbonRantz"
+        username: tweet.username || "CarbonTruths",
       }));
       
       console.log("\nFormatted tweets for template:");

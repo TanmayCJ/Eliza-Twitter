@@ -7,7 +7,11 @@ const { checkTweetPopularity } = require('../packages/client-twitter/src/popular
 const sampleTweets = [
   "Climate change is real and we need to act now. #ClimateAction",
   "Just planted 50 trees in my community! Every small action counts. #Sustainability",
-  "I'm bored today, whatever.",
+  "The future is green! Let's invest in renewable energy and protect our planet. #GreenEnergy",
+  "Did you know that reducing meat consumption can significantly lower your carbon footprint? #PlantBased",
+  "Join us in the fight against plastic pollution! Every piece of plastic counts. #PlasticFree",
+  "We just launched a new initiative to clean up local beaches. Together, we can make a difference! #OceanConservation",
+  "Our city just passed a new law to ban single-use plastics. This is a huge step forward! #EcoFriendly",
   "Exciting news! Our renewable energy project just reached 1 million homes powered by solar. This is how we make a difference! #CleanEnergy #Sustainability"
 ];
 
