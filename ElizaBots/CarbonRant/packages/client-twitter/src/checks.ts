@@ -5,9 +5,11 @@ import { elizaLogger } from "@elizaos/core";
  * using external API services.
  */
 export class TweetChecker {
-  private readonly safetyApiUrl: string = 'http://127.0.0.1:8000/api/safety/';
+  private readonly safetyApiUrl: string = 'http://127.0.0.1:8000/api/popularity/';
   private readonly popularityApiUrl: string = 'http://127.0.0.1:8000/api/popularity/';
-  private readonly acceptedPopularityScore: number = 10;
+  private readonly latestTweetsApiUrl: string = 'http://127.0.0.1:8000/api/tweets/latest/?sender=default';
+
+  private readonly acceptedPopularityScore: number = 10; 
 
   /**
    * Checks if a tweet is safe (doesn't contain inappropriate content)

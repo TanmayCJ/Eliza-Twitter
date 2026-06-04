@@ -25,6 +25,7 @@ import { DEFAULT_MAX_TWEET_LENGTH } from "./environment.ts";
 import { formatHandle, getRecommendedTags, isTaggingEnabled } from "./mentions.ts";
 import { getRandomPersonality, type PersonalityConfig } from "./personality.ts";
 import { checkTweetPopularity } from "./popularity.ts";
+import { fetchLatestTweetsFromEliza } from "./latest_tweet.ts";
    
 import {
     Client,
@@ -39,6 +40,7 @@ import { MediaData } from "./types.ts";
 import { v4 as uuidv4 } from 'uuid';
 import type { Memory } from "@elizaos/core";
 import { TwitterPrePostHookHandler } from "./hooks.ts";
+
 const MAX_TIMELINES_TO_FETCH = 15;
 
 const twitterPostTemplate = `
@@ -55,6 +57,15 @@ const twitterPostTemplate = `
 {{characterPostExamples}}
 
 {{postDirections}}
+
+# Latest Tweets From ElizaServices API
+{{#if latestTweets}}
+{{#each latestTweets}}
+- {{text}}
+{{/each}}
+{{else}}
+No latest tweets available.
+{{/if}}
 
 # Current Tweeting Personality: {{personalityName}}
 {{personalityDescription}}
@@ -1036,8 +1047,7 @@ export class TwitterPostClient {
     }
 
     /**
-     * Generates a new tweet, sends it for verification if required, or posts it directly
-     */    async generateNewTweet() {
+     * Generates a new tweet, sends it for verification if required, or posts it directly     */    async generateNewTweet() {
         elizaLogger.log("Generating new tweet");
 
         try {
@@ -1049,7 +1059,14 @@ export class TwitterPostClient {
                 this.client.profile.username,
                 this.runtime.character.name,
                 "twitter"
-            );            // Select a random personality based on the configured percentages
+            );
+            
+            // Fetch latest tweets from ElizaServices API
+            elizaLogger.log("Fetching latest tweets from ElizaServices API for context");
+            const latestTweets = await fetchLatestTweetsFromEliza(this.runtime);
+            elizaLogger.log(`Fetched ${Array.isArray(latestTweets) ? latestTweets.length : 0} latest tweets for context`);
+            
+            // Select a random personality based on the configured percentages
             const selectedPersonality = getRandomPersonality();
             elizaLogger.log(`Using personality: ${selectedPersonality.name} (${selectedPersonality.percentage}%)`);
             
@@ -1057,9 +1074,7 @@ export class TwitterPostClient {
             const isPoetic = Math.random() < 0.10;
             if (isPoetic) {
                 elizaLogger.log(`This tweet will be generated as a poetic rhyme (10% feature)`);
-            }
-
-            const topics = this.runtime.character.topics.join(", ");
+            }            const topics = this.runtime.character.topics.join(", ");
             const maxTweetLength = this.client.twitterConfig.MAX_TWEET_LENGTH;
             const state = await this.runtime.composeState(
                 {
@@ -1076,7 +1091,8 @@ export class TwitterPostClient {
                     maxTweetLength,
                     personalityName: selectedPersonality.name,
                     personalityDescription: selectedPersonality.description,
-                    isPoetic: isPoetic
+                    isPoetic: isPoetic,
+                    latestTweets: latestTweets // Add latest tweets to the state
                 }
             );
 
@@ -2140,6 +2156,9 @@ export class TwitterPostClient {
             elizaLogger.log(`Started ${this.approvalProvider} verification check loop`);
         } catch (error) {
             elizaLogger.error("Error starting verification polling:", error);
+
+            
         }
     }
 }
+

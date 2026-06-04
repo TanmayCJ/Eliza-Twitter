@@ -27,22 +27,22 @@ export async function fetchLatestTweetsFromEliza(runtime?: IAgentRuntime) {
             return [];
         }
 
-        elizaLogger.log(`🔍 Fetching latest tweets from ElizaServices API`);
+        elizaLogger.log(` Fetching latest tweets from ElizaServices API`);
         
         const response = await fetch(apiUrl);
         
         if (!response.ok) {
-            elizaLogger.error(`❌ Latest tweets fetch failed with status: ${response.status}`);
+            elizaLogger.error(` Latest tweets fetch failed with status: ${response.status}`);
             return [];
         }
         
         const data = await response.json();
-        elizaLogger.log(`✅ Successfully fetched ${Array.isArray(data) ? data.length : 1} tweet(s) from ElizaServices API`);
+        elizaLogger.log(`Successfully fetched ${Array.isArray(data) ? data.length : 1} tweet(s) from ElizaServices API`);
         
         const verbose = runtime?.getSetting("ELIZA_LATEST_TWEETS_VERBOSE_OUTPUT")?.toLowerCase() === "true";
         
         if (verbose) {
-            elizaLogger.log("📊 Latest tweets data:", data);
+            elizaLogger.log("Latest tweets data:", data);
         }
         
         return data;

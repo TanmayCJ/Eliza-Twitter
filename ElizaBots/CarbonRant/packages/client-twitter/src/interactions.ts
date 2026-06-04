@@ -198,7 +198,7 @@ export class TwitterInteractionClient {
 
                     // Select one tweet from each user that has tweets
                     const selectedTweets: Tweet[] = [];
-                    for (const [username, tweets] of tweetsByUser) {
+                    for (const [username, tweets] of Array.from(tweetsByUser.entries())) {
                         if (tweets.length > 0) {
                             // Randomly select one tweet from this user
                             const randomTweet =
