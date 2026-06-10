@@ -246,7 +246,6 @@ Before pushing or deploying:
 * Never commit `.env`
 * Never expose Twitter/X credentials
 * Do not push API keys
-* Ignore `node_modules`
 * Review logs before making the repository public
 * Use environment variables for all secrets
 
