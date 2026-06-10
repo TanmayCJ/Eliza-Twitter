@@ -262,7 +262,7 @@ Before pushing or deploying:
 * Add analytics for tweets and replies
 * Add safer approval flow before posting
 * Add multi-bot support
-* Add documentation for custom characters
+* Add documentation for custom characters - Eliza main repo as well
 
 ---
 
